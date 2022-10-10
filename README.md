@@ -79,8 +79,8 @@ of the core units withing the system:
 		),
 
 		// Modules allow separating the dependencies of the systems.
-		WithModules(
-			func(m *system.Module) {
+		WithSubsystem(
+			func(s *system.Subsystem) {
 				// Registers
 				m.RegisterEvent(accountCreated{})
 				m.RegisterCommand(createAccount{}, createAccountCommandHandler))
@@ -88,7 +88,7 @@ of the core units withing the system:
 		),
 	)
 
-	// Entry points are procedure to start the system and its interaction layer.
+	// Entry points are procedure to start the system and its subsystem's interaction layers.
 	// Depending on the needs of the system, one could need to define different entry points
 	// starting different things. (e.g. Web Server, Message Queue etc.)
     mainEntryPoint := NewEntryPoint(
@@ -123,57 +123,47 @@ of the core units withing the system:
 
 ## Aggregates
 
-### Implementing an Aggregate
+### Implementing an event sourced Aggregate
 The aggregate interface has the following structure:
 ```go
-type Aggregate interface {
-	// Apply an event to this aggregate without recording it as an uncommitted change.
-	Apply(e event.Event)
-
-	// RecordAndApplyEvent Records an event.Event as an uncommitted event and applies it to this aggregate.
-	RecordAndApplyEvent(e event.Event)
-
-	// UncommittedEvents Returns the list of uncommitted events on this aggregate.
-	UncommittedEvents() event.List
-
-	// ClearUncommittedEvents Clears the list of uncommitted events on this aggregate.
-	ClearUncommittedEvents()
-}
-```
-
-To simplify the work of the implementors of this interface, the embeddable `EventRecorder` struct can be used.
-This result in the implementor only requiring to implement the `Apply(e event.Event)` and `RecordAndApplyEvent(e event.Event)` methods.
-
-```go
 type User struct {
-	EventRecorder
+	EventSourcedAggregateBase
+
 	ID           string
 	EmailAddress string
 }
 
-func (u *User) Apply(e event.Event) {
-	switch e.(type) {
+func (u *User) ApplyEvent(evt event.Event) {
+	switch evt.(type) {
 	case UserRegisteredEvent:
-		evt := e.(UserRegisteredEvent)
-		u.ID = evt.ID
-		u.EmailAddress = evt.EmailAddress
+		e := evt.(UserRegisteredEvent)
+		u.ID = e.ID
+		u.EmailAddress = e.EmailAddress
 	}
 }
 
-func (u *User) RecordAndApplyEvent(e event.Event) error {
-	u.RecordEvent(e) // method provided by the EventRecorder
-	u.Apply(e)
-	return nil
+func RegisterUser(id string, emailAddress string) *User {
+	u := &User{
+		ID:           "",
+		EmailAddress: "",
+	}
+	// NOTE THIS LINE HERE
+	u.EventSourcedAggregateBase = EventSourcedAggregateBase{
+		ApplyEvent: u.ApplyEvent,
+	}
+
+	u.RecordEvent(UserRegisteredEvent{
+		ID:           id,
+		EmailAddress: emailAddress,
+	})
+
+	return u
 }
 ```
 
-> Note: The method `RecordAndApplyEvent(e event.Event)` can be a useful place to perform general safe guarding for the end of life of an aggregate by returning an error
-> in case of violated invariants.
-> 
-> *For example, when a user account is banned, it should not be possible to perform any other changes to the account.*
-
 ### Aggregate Repositories
-You can use the aggregate.EventStoreRepository helper to quickly implement repositories for your aggregates through composition:
+If using the  `EventSourcedAggregate` interface, one can use the `domain.EventStoreRepository` helper to quickly
+implement event store based repositories for aggregates through composition:
 
 ```go
 type UserRepository struct {
@@ -207,6 +197,47 @@ func (r *UserRepository) FindByID(ctx context.Context, id UserID) (*User, Versio
   return loaded.(*User), v, nil
 }
 ```
+
+## Domain Errors
+You can create errors like so
+```go
+const UserNotFoundErrorTypeName domain.ErrorTypeName = "user_not_found"
+func UserNotFoundError(id UserId, cause error) error
+	return domain.NewError(
+		WithTypeName(UserNotFoundErrorTypeName),
+		WithMessage(fmt.Sprtinf("user %s not found", string(id))),
+		WithCause(cause)
+		WithData(map[string]any{
+			"id": string(id)
+		})
+	)
+)
+```
+
+You can test that an error is of a given typeName
+
+```go
+domain.IsDomainErrorWithTypeName(UserNotFoundErrorTypeName)
+```
+
+
+Domain errors can also be tagged upon creation:
+```go
+domain.NewError(
+	// ...
+	WithTag("a tag")
+	WithTags("another tag", "yet another tag")
+)
+```
+
+Tags allow grouping errors, for example a system might have a lot of different not found errors for specific
+types of resources, aggregates and views. Some components of the system might simply want to know if an error
+qualifies as a not found error without needing to maintain a list of all the `ErrorTypeNames` that qualifies for this.
+
+This is where tags come into play. There are a few tags available out of the box:
+- `domain.NotFoundTag`: When a resource, aggregate, view etc. was not found.
+- `domain.AlreadyExistsTag`: When a resource, aggregate view, was expected not to be found.
+- `domain.ValidationErrorTag`: When an error represents a validation error.
 
 
 ## Query Processing
@@ -246,7 +277,7 @@ however, it also means that event handlers should be implemented in a way to sup
 applied. This leads to a system that can be slightly inconsistent, and will require close attention to these potential inconsistencies.
 
 An interesting strategy is to used Delayed processing combined with event processing partitions, 
-(e.g. one event processor per module) which can often drastically minimize the bottlenecks occasioned by having a problematic event. 
+(e.g. one event processor per subsystem) which can often drastically minimize the bottlenecks occasioned by having a problematic event.
 
 ## Registering Event Handlers with the System
 

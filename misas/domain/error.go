@@ -37,6 +37,7 @@ func IsDomainErrorWithTypeName(err error, t ErrorTypeName) bool {
 }
 
 const NotFoundTag = "not_found"
+const ValidationErrorTag = "validation_error"
 
 func IsNotFoundDomainError(err error) bool {
 	if !IsDomainError(err) {
@@ -175,6 +176,9 @@ func WithTag(tag string) ErrorOption {
 	}
 }
 
-func WithTagNotFound() ErrorOption {
-	return WithTag(NotFoundTag)
+func WithTags(tags ...string) ErrorOption {
+	return func(e Error) Error {
+		e.tags = append(e.tags, tags...)
+		return e
+	}
 }
