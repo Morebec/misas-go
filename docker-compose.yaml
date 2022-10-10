@@ -1,0 +1,21 @@
+version: '3.7'
+services:
+    postgresql:
+        image: 'docker.io/bitnami/postgresql:11-debian-10'
+        ports:
+            - "127.0.0.1:5432:5432"
+        volumes:
+            - postgresql_data:/bitnami/postgresql
+        environment:
+            - 'ALLOW_EMPTY_PASSWORD=yes'
+
+    jaeger:
+        image: jaegertracing/all-in-one:latest
+        ports:
+            - "6831:6831/udp"
+            - "16686:16686"
+            - "14268:14268"
+
+volumes:
+    postgresql_data:
+        driver: local

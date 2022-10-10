@@ -1,0 +1,13 @@
+version: 1.0.0
+type: event
+typeName: customer.registered
+description: "Records the fact that a customer was registered with the billing module."
+
+fields:
+  customerId:
+    description: "ID of the customer that was registered. This identifier is mapped to the customer's user account ID."
+    type: identifier
+
+  registeredAt:
+    description: "Date and time at which the customer was registered."
+    type: dateTime

@@ -1,0 +1,10 @@
+version: "1.0"
+type: system
+typeName: test_system
+description: "This is the description of the system."
+license:
+  url: license
+  name: Apache
+
+contacts:
+  - emailAddress: test@system.com

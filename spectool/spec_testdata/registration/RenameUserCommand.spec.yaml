@@ -1,0 +1,21 @@
+version: "1.0"
+type: command
+typeName: user_account_management.registration.register
+description: |
+  Allows creating a user.
+  In the system.
+fields:
+  id:
+    description: "ID of the user"
+    type: identifier
+
+  name:
+    description: "New name of the user"
+    type: string
+
+  emailAddress:
+    description: "Email address"
+    type: string
+
+annotations:
+  gen:go:name: "RenameUserCommand"
