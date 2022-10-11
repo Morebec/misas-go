@@ -17,7 +17,7 @@ package instrumentation
 import (
 	"context"
 	"fmt"
-	"github.com/jwillp/go-system/misas/command"
+	"github.com/morebec/go-system/misas/command"
 	"go.opentelemetry.io/otel/attribute"
 )
 

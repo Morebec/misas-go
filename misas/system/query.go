@@ -15,7 +15,7 @@
 package system
 
 import (
-	"github.com/jwillp/go-system/misas/query"
+	"github.com/morebec/go-system/misas/query"
 )
 
 type QueryHandlingOption func(s *System)

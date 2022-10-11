@@ -16,8 +16,8 @@ package testing
 
 import (
 	"fmt"
-	"github.com/jwillp/go-system/misas/event"
-	"github.com/jwillp/go-system/misas/event/store"
+	"github.com/morebec/go-system/misas/event"
+	"github.com/morebec/go-system/misas/event/store"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )

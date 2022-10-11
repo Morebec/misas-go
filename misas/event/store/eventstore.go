@@ -18,8 +18,8 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/jwillp/go-system/misas"
-	"github.com/jwillp/go-system/misas/event"
+	"github.com/morebec/go-system/misas"
+	"github.com/morebec/go-system/misas/event"
 	"time"
 )
 

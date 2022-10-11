@@ -16,7 +16,7 @@ package store
 
 import (
 	"fmt"
-	"github.com/jwillp/go-system/misas/event"
+	"github.com/morebec/go-system/misas/event"
 	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"

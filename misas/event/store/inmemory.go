@@ -16,7 +16,7 @@ package store
 
 import (
 	"context"
-	"github.com/jwillp/go-system/misas/clock"
+	"github.com/morebec/go-system/misas/clock"
 	"github.com/pkg/errors"
 )
 

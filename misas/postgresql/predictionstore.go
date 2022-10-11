@@ -17,9 +17,9 @@ package postgresql
 import (
 	"database/sql"
 	"encoding/json"
-	"github.com/jwillp/go-system/misas"
-	"github.com/jwillp/go-system/misas/clock"
-	"github.com/jwillp/go-system/misas/prediction"
+	"github.com/morebec/go-system/misas"
+	"github.com/morebec/go-system/misas/clock"
+	"github.com/morebec/go-system/misas/prediction"
 	"github.com/pkg/errors"
 	"time"
 )

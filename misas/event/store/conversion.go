@@ -16,7 +16,7 @@ package store
 
 import (
 	"encoding/json"
-	"github.com/jwillp/go-system/misas/event"
+	"github.com/morebec/go-system/misas/event"
 	"github.com/pkg/errors"
 	"reflect"
 )

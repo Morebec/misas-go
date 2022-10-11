@@ -17,7 +17,7 @@ package postgresql
 import (
 	"context"
 	"database/sql"
-	"github.com/jwillp/go-system/misas/event/processing"
+	"github.com/morebec/go-system/misas/event/processing"
 	"github.com/pkg/errors"
 )
 

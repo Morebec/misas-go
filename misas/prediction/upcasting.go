@@ -15,7 +15,7 @@
 package prediction
 
 import (
-	"github.com/jwillp/go-system/misas"
+	"github.com/morebec/go-system/misas"
 	"time"
 )
 

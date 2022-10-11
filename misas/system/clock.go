@@ -15,7 +15,7 @@
 package system
 
 import (
-	"github.com/jwillp/go-system/misas/clock"
+	"github.com/morebec/go-system/misas/clock"
 )
 
 // WithClock specifies that the System relies on UTCClock.

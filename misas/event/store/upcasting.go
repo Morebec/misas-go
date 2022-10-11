@@ -16,8 +16,8 @@ package store
 
 import (
 	"context"
-	"github.com/jwillp/go-system/misas"
-	"github.com/jwillp/go-system/misas/event"
+	"github.com/morebec/go-system/misas"
+	"github.com/morebec/go-system/misas/event"
 	"time"
 )
 

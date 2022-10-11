@@ -15,7 +15,7 @@
 package store
 
 import (
-	"github.com/jwillp/go-system/misas/event"
+	"github.com/morebec/go-system/misas/event"
 	"math"
 )
 

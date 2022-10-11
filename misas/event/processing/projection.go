@@ -16,8 +16,8 @@ package processing
 
 import (
 	"context"
-	"github.com/jwillp/go-system/misas/event"
-	"github.com/jwillp/go-system/misas/event/store"
+	"github.com/morebec/go-system/misas/event"
+	"github.com/morebec/go-system/misas/event/store"
 )
 
 // A Projector is a service responsible for projecting events to Read Models.

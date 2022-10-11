@@ -1,1 +1,1 @@
-module github.com/jwillp/go-system/test-data
+module github.com/morebec/go-system/test-data

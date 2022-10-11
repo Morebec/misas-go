@@ -16,13 +16,13 @@ package system
 
 import (
 	"context"
-	"github.com/jwillp/go-system/misas/clock"
-	"github.com/jwillp/go-system/misas/command"
-	"github.com/jwillp/go-system/misas/event"
-	"github.com/jwillp/go-system/misas/event/store"
-	"github.com/jwillp/go-system/misas/instrumentation"
-	"github.com/jwillp/go-system/misas/prediction"
-	"github.com/jwillp/go-system/misas/query"
+	"github.com/morebec/go-system/misas/clock"
+	"github.com/morebec/go-system/misas/command"
+	"github.com/morebec/go-system/misas/event"
+	"github.com/morebec/go-system/misas/event/store"
+	"github.com/morebec/go-system/misas/instrumentation"
+	"github.com/morebec/go-system/misas/prediction"
+	"github.com/morebec/go-system/misas/query"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"go.opentelemetry.io/otel/sdk/trace"
 )
