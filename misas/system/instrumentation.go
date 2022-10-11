@@ -15,7 +15,7 @@
 package system
 
 import (
-	"github.com/morebec/go-system/misas/instrumentation"
+	"github.com/morebec/misas-go/misas/instrumentation"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"go.opentelemetry.io/otel/exporters/jaeger"
 	"go.opentelemetry.io/otel/sdk/trace"

@@ -16,8 +16,8 @@ package processing
 
 import (
 	"context"
-	"github.com/morebec/go-system/misas/clock"
-	"github.com/morebec/go-system/misas/event/store"
+	"github.com/morebec/misas-go/misas/clock"
+	"github.com/morebec/misas-go/misas/event/store"
 	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"

@@ -946,10 +946,10 @@ func {{ .EndpointFuncName }}(r chi.Router, bus {{ if eq .Method "POST" }}command
 
 			"github.com/go-chi/chi/v5",
 			"github.com/go-chi/render",
-			"github.com/morebec/go-system/misas/httpapi",
-			"github.com/morebec/go-system/misas/command",
-			"github.com/morebec/go-system/misas/domain",
-			"github.com/morebec/go-system/misas/event",
+			"github.com/morebec/misas-go/misas/httpapi",
+			"github.com/morebec/misas-go/misas/command",
+			"github.com/morebec/misas-go/misas/domain",
+			"github.com/morebec/misas-go/misas/event",
 		},
 	)
 

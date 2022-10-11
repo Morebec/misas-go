@@ -17,9 +17,9 @@ package instrumentation
 import (
 	"context"
 	"fmt"
-	"github.com/morebec/go-system/misas/event"
-	"github.com/morebec/go-system/misas/event/processing"
-	"github.com/morebec/go-system/misas/event/store"
+	"github.com/morebec/misas-go/misas/event"
+	"github.com/morebec/misas-go/misas/event/processing"
+	"github.com/morebec/misas-go/misas/event/store"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"

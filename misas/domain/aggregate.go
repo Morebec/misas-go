@@ -17,9 +17,9 @@ package domain
 import (
 	"context"
 	"github.com/google/uuid"
-	"github.com/morebec/go-system/misas"
-	"github.com/morebec/go-system/misas/event"
-	"github.com/morebec/go-system/misas/event/store"
+	"github.com/morebec/misas-go/misas"
+	"github.com/morebec/misas-go/misas/event"
+	"github.com/morebec/misas-go/misas/event/store"
 	"github.com/pkg/errors"
 )
 

@@ -16,7 +16,7 @@ package prediction
 
 import (
 	"context"
-	"github.com/morebec/go-system/misas/clock"
+	"github.com/morebec/misas-go/misas/clock"
 	"github.com/pkg/errors"
 	"time"
 )

@@ -15,7 +15,7 @@
 package system
 
 import (
-	"github.com/morebec/go-system/misas/prediction"
+	"github.com/morebec/misas-go/misas/prediction"
 )
 
 type PredictionHandlingOption func(system *System)

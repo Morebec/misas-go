@@ -16,8 +16,8 @@ package prediction
 
 import (
 	"encoding/json"
-	"github.com/morebec/go-system/misas"
-	"github.com/morebec/go-system/misas/clock"
+	"github.com/morebec/misas-go/misas"
+	"github.com/morebec/misas-go/misas/clock"
 	"github.com/pkg/errors"
 	"time"
 )

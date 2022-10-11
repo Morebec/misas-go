@@ -16,7 +16,7 @@ package postgresql
 
 import (
 	"context"
-	"github.com/morebec/go-system/misas/event/processing"
+	"github.com/morebec/misas-go/misas/event/processing"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

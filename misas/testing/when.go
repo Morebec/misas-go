@@ -15,10 +15,10 @@
 package testing
 
 import (
-	"github.com/morebec/go-system/misas/command"
-	"github.com/morebec/go-system/misas/event"
-	"github.com/morebec/go-system/misas/prediction"
-	"github.com/morebec/go-system/misas/query"
+	"github.com/morebec/misas-go/misas/command"
+	"github.com/morebec/misas-go/misas/event"
+	"github.com/morebec/misas-go/misas/prediction"
+	"github.com/morebec/misas-go/misas/query"
 	"github.com/stretchr/testify/assert"
 )
 

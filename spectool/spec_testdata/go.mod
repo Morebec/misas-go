@@ -1,1 +1,1 @@
-module github.com/morebec/go-system/test-data
+module github.com/morebec/misas-go/test-data

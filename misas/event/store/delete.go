@@ -15,7 +15,7 @@
 package store
 
 import (
-	"github.com/morebec/go-system/misas/event"
+	"github.com/morebec/misas-go/misas/event"
 	"time"
 )
 

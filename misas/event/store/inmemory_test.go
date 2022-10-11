@@ -17,9 +17,9 @@ package store
 import (
 	"context"
 	"github.com/google/uuid"
-	"github.com/morebec/go-system/misas"
-	"github.com/morebec/go-system/misas/clock"
-	"github.com/morebec/go-system/misas/event"
+	"github.com/morebec/misas-go/misas"
+	"github.com/morebec/misas-go/misas/clock"
+	"github.com/morebec/misas-go/misas/event"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

@@ -14,7 +14,7 @@
 
 package domain
 
-import "github.com/morebec/go-system/misas/command"
+import "github.com/morebec/misas-go/misas/command"
 
 const InvalidCommand ErrorTypeName = "invalid_command"
 const InvalidQuery ErrorTypeName = "invalid_query"

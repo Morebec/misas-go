@@ -17,9 +17,9 @@ package domain
 import (
 	"context"
 	"fmt"
-	"github.com/morebec/go-system/misas/clock"
-	"github.com/morebec/go-system/misas/event"
-	"github.com/morebec/go-system/misas/event/store"
+	"github.com/morebec/misas-go/misas/clock"
+	"github.com/morebec/misas-go/misas/event"
+	"github.com/morebec/misas-go/misas/event/store"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

@@ -15,8 +15,8 @@
 package system
 
 import (
-	"github.com/morebec/go-system/misas/event"
-	"github.com/morebec/go-system/misas/event/store"
+	"github.com/morebec/misas-go/misas/event"
+	"github.com/morebec/misas-go/misas/event/store"
 )
 
 type EventHandlingOption func(s *System)

@@ -15,7 +15,7 @@
 package system
 
 import (
-	"github.com/morebec/go-system/misas/command"
+	"github.com/morebec/misas-go/misas/command"
 )
 
 type CommandProcessingOptions func(s *System)

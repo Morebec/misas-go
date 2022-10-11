@@ -16,11 +16,11 @@ package testing
 
 import (
 	"context"
-	"github.com/morebec/go-system/misas/clock"
-	"github.com/morebec/go-system/misas/command"
-	"github.com/morebec/go-system/misas/event"
-	"github.com/morebec/go-system/misas/event/store"
-	"github.com/morebec/go-system/misas/system"
+	"github.com/morebec/misas-go/misas/clock"
+	"github.com/morebec/misas-go/misas/command"
+	"github.com/morebec/misas-go/misas/event"
+	"github.com/morebec/misas-go/misas/event/store"
+	"github.com/morebec/misas-go/misas/system"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"

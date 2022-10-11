@@ -1,4 +1,4 @@
-module github.com/morebec/go-system
+module github.com/morebec/misas-go
 
 go 1.18
 

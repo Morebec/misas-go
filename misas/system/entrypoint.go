@@ -17,7 +17,7 @@ package system
 import (
 	"context"
 	"fmt"
-	"github.com/morebec/go-system/misas/event/processing"
+	"github.com/morebec/misas-go/misas/event/processing"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
