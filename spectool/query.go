@@ -89,7 +89,7 @@ func QueryFieldsShouldHaveDescriptionLinter() Linter {
 			props := s.Properties.(QuerySpecProperties)
 			for _, f := range props.Fields {
 				if f.Description == "" {
-					warning = append(warning, fmt.Sprintf("field %s of query %s does not have a description", f.Name, f.Description))
+					warning = append(warning, fmt.Sprintf("field %s of query %s does not have a description", f.Name, s.TypeName))
 				}
 			}
 		}

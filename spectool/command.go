@@ -74,7 +74,7 @@ func CommandFieldsMustHaveNameLinter() Linter {
 			props := s.Properties.(CommandSpecProperties)
 			for i, f := range props.Fields {
 				if f.Description == "" {
-					errs = append(errs, errors.Errorf("field [%s] of command %s does not have a name", i, f.Description))
+					errs = append(errs, errors.Errorf("field [%s] of command %s does not have a name", i, s.TypeName))
 				}
 			}
 		}
@@ -89,7 +89,7 @@ func CommandFieldsShouldHaveDescriptionLinter() Linter {
 			props := s.Properties.(CommandSpecProperties)
 			for _, f := range props.Fields {
 				if f.Description == "" {
-					warning = append(warning, fmt.Sprintf("field %s of command %s does not have a description", f.Name, f.Description))
+					warning = append(warning, fmt.Sprintf("field %s of command %s does not have a description", f.Name, s.TypeName))
 				}
 			}
 		}

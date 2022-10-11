@@ -109,7 +109,7 @@ func EventFieldsShouldHaveDescriptionLinter() Linter {
 			props := s.Properties.(EventSpecProperties)
 			for _, f := range props.Fields {
 				if f.Description == "" {
-					warning = append(warning, fmt.Sprintf("field %s of event %s does not have a description", f.Name, f.Description))
+					warning = append(warning, fmt.Sprintf("field %s of event %s does not have a description", f.Name, s.TypeName))
 				}
 			}
 		}
