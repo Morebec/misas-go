@@ -1,7 +1,8 @@
-package spectool
+package processing
 
 import (
 	"fmt"
+	"github.com/morebec/misas-go/spectool/spec"
 	"github.com/pkg/errors"
 	"strings"
 )
@@ -25,11 +26,11 @@ func (le LintingErrors) Error() string {
 type LintingWarnings []string
 
 // Linter represents a function responsible for linting specs.
-type Linter func(system Spec, specs SpecGroup) (LintingWarnings, LintingErrors)
+type Linter func(system spec.Spec, specs spec.Group) (LintingWarnings, LintingErrors)
 
 // CompositeLinter A Composite linter is responsible for running multiple linters as one.
 func CompositeLinter(linters ...Linter) Linter {
-	return func(system Spec, specs SpecGroup) (LintingWarnings, LintingErrors) {
+	return func(system spec.Spec, specs spec.Group) (LintingWarnings, LintingErrors) {
 		var lintingErrors LintingErrors
 		var lintingWarnings LintingWarnings
 		for _, linter := range linters {
@@ -47,12 +48,12 @@ func CompositeLinter(linters ...Linter) Linter {
 
 // SpecificationsMustNotHaveUndefinedTypes ensures that no spec has an undefined type
 func SpecificationsMustNotHaveUndefinedTypes() Linter {
-	return func(system Spec, specs SpecGroup) (LintingWarnings, LintingErrors) {
+	return func(system spec.Spec, specs spec.Group) (LintingWarnings, LintingErrors) {
 		var lintingErrors LintingErrors
 		var lintingWarnings LintingWarnings
 
 		for _, s := range specs {
-			if s.Type == UndefinedSpecificationType {
+			if s.Type == spec.UndefinedSpecificationType {
 				lintingErrors = append(lintingErrors, errors.Errorf("spec at \"%s\" has an undefined type", s.Source.Location))
 			}
 		}
@@ -63,12 +64,12 @@ func SpecificationsMustNotHaveUndefinedTypes() Linter {
 
 // SpecificationMustNotHaveUndefinedTypeNames ensures that no spec has an undefined type name
 func SpecificationMustNotHaveUndefinedTypeNames() Linter {
-	return func(system Spec, specs SpecGroup) (LintingWarnings, LintingErrors) {
+	return func(system spec.Spec, specs spec.Group) (LintingWarnings, LintingErrors) {
 		var lintingErrors LintingErrors
 		var lintingWarnings LintingWarnings
 
 		for _, s := range specs {
-			if s.TypeName == UndefinedSpecificationTypename {
+			if s.TypeName == spec.UndefinedSpecificationTypename {
 				lintingErrors = append(lintingErrors, errors.Errorf("spec at \"%s\" has an undefined type name", s.Source.Location))
 			}
 		}
@@ -79,12 +80,12 @@ func SpecificationMustNotHaveUndefinedTypeNames() Linter {
 
 // SpecificationsMustNotHaveDuplicateTypeNames ensures that type names are unique amongst specs.
 func SpecificationsMustNotHaveDuplicateTypeNames() Linter {
-	return func(system Spec, specs SpecGroup) (LintingWarnings, LintingErrors) {
+	return func(system spec.Spec, specs spec.Group) (LintingWarnings, LintingErrors) {
 		var lintingErrors LintingErrors
 		var lintingWarnings LintingWarnings
 
 		// Where key is the type name and the array contains all the spec file locations where it was encountered.
-		encounteredTypeNames := map[SpecTypeName][]string{}
+		encounteredTypeNames := map[spec.TypeName][]string{}
 
 		for _, s := range specs {
 			if _, found := encounteredTypeNames[s.TypeName]; found {
@@ -106,7 +107,7 @@ func SpecificationsMustNotHaveDuplicateTypeNames() Linter {
 
 // SpecificationsMustHaveDescriptions ensures that all specs have a description.
 func SpecificationsMustHaveDescriptions() Linter {
-	return func(system Spec, specs SpecGroup) (LintingWarnings, LintingErrors) {
+	return func(system spec.Spec, specs spec.Group) (LintingWarnings, LintingErrors) {
 		var lintingErrors LintingErrors
 		var lintingWarnings LintingWarnings
 		for _, s := range specs {
@@ -120,7 +121,7 @@ func SpecificationsMustHaveDescriptions() Linter {
 
 // SpecificationsMustHaveLowerCaseTypeNames ensures that all spec type names are lower case.
 func SpecificationsMustHaveLowerCaseTypeNames() Linter {
-	return func(system Spec, specs SpecGroup) (LintingWarnings, LintingErrors) {
+	return func(system spec.Spec, specs spec.Group) (LintingWarnings, LintingErrors) {
 		var lintingErrors LintingErrors
 		var lintingWarnings LintingWarnings
 		for _, s := range specs {
@@ -133,7 +134,7 @@ func SpecificationsMustHaveLowerCaseTypeNames() Linter {
 }
 
 func SpecificationsShouldFollowNamingConvention() Linter {
-	return func(system Spec, specs SpecGroup) (LintingWarnings, LintingErrors) {
+	return func(system spec.Spec, specs spec.Group) (LintingWarnings, LintingErrors) {
 		var lintingWarnings LintingWarnings
 		for _, s := range specs {
 			nbParts := len(s.TypeName.Parts())

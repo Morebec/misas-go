@@ -1,6 +1,10 @@
-package spectool
+package processing
 
-const SystemSpecType SpecType = "system"
+import (
+	"github.com/morebec/misas-go/spectool/spec"
+)
+
+const SystemSpecType spec.Type = "system"
 
 type SystemSpecProperties struct {
 	License struct {
@@ -24,15 +28,15 @@ func SystemSpecDeserializer() SpecDeserializer {
 }
 
 func SystemDependencyProvider() DependencyProvider {
-	return func(systemSpec Spec, specs SpecGroup) ([]DependencyNode, error) {
-		systemNode := NewDependencyNode(systemSpec, MapSpecGroup[SpecTypeName](specs, func(s Spec) SpecTypeName {
+	return func(systemSpec spec.Spec, specs spec.Group) ([]DependencyNode, error) {
+		systemNode := NewDependencyNode(systemSpec, spec.MapSpecGroup[spec.TypeName](specs, func(s spec.Spec) spec.TypeName {
 			return s.TypeName
 		})...)
 
 		nodes := []DependencyNode{systemNode}
 
-		for _, spec := range specs {
-			nodes = append(nodes, NewDependencyNode(spec))
+		for _, s := range specs {
+			nodes = append(nodes, NewDependencyNode(s))
 		}
 
 		return nodes, nil

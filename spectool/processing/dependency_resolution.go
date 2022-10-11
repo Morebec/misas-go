@@ -12,14 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package spectool
+package processing
 
 import (
+	"github.com/morebec/misas-go/spectool/spec"
 	"github.com/pkg/errors"
 	"strings"
 )
 
-type DependencySet map[SpecTypeName]struct{}
+type DependencySet map[spec.TypeName]struct{}
 
 // diff Returns all elements that are in s and not in o. A / B
 func (s DependencySet) diff(o DependencySet) DependencySet {
@@ -35,17 +36,17 @@ func (s DependencySet) diff(o DependencySet) DependencySet {
 	return diff
 }
 
-func (s DependencySet) TypeNames() []SpecTypeName {
-	var typeNames []SpecTypeName
+func (s DependencySet) TypeNames() []spec.TypeName {
+	var typeNames []spec.TypeName
 
-	for k, _ := range s {
+	for k := range s {
 		typeNames = append(typeNames, k)
 	}
 
 	return typeNames
 }
 
-func NewDependencySet(dependencies ...SpecTypeName) DependencySet {
+func NewDependencySet(dependencies ...spec.TypeName) DependencySet {
 	deps := DependencySet{}
 	for _, d := range dependencies {
 		deps[d] = struct{}{}
@@ -55,19 +56,19 @@ func NewDependencySet(dependencies ...SpecTypeName) DependencySet {
 }
 
 // DependencyProvider are functions responsible for providing the dependencies of a list of Spec as a list of DependencyNode.
-// Generally providers are specialized for a specific SpecType.
-type DependencyProvider func(systemSpec Spec, specs SpecGroup) ([]DependencyNode, error)
+// Generally providers are specialized for a specific Type.
+type DependencyProvider func(systemSpec spec.Spec, specs spec.Group) ([]DependencyNode, error)
 
 type DependencyNode struct {
-	Spec         Spec
+	Spec         spec.Spec
 	Dependencies DependencySet
 }
 
-func (n DependencyNode) TypeName() SpecTypeName {
+func (n DependencyNode) TypeName() spec.TypeName {
 	return n.Spec.TypeName
 }
 
-func NewDependencyNode(spec Spec, dependencies ...SpecTypeName) DependencyNode {
+func NewDependencyNode(spec spec.Spec, dependencies ...spec.TypeName) DependencyNode {
 	return DependencyNode{Spec: spec, Dependencies: NewDependencySet(dependencies...)}
 }
 
@@ -75,7 +76,7 @@ type DependencyGraph []DependencyNode
 
 // Merge Allows merging this dependency graph with another one and returns the result.
 func (g DependencyGraph) Merge(o DependencyGraph) DependencyGraph {
-	var lookup = make(map[SpecTypeName]bool)
+	var lookup = make(map[spec.TypeName]bool)
 	var merge []DependencyNode
 
 	for _, node := range g {
@@ -101,10 +102,10 @@ func (g DependencyGraph) Resolve() (ResolvedDependencies, error) {
 	var resolved []DependencyNode
 
 	// Look up of nodes to their typeName Names.
-	nodesByTypeNames := map[SpecTypeName]DependencyNode{}
+	nodesByTypeNames := map[spec.TypeName]DependencyNode{}
 
 	// Map nodes to dependencies
-	dependenciesByTypeNames := map[SpecTypeName]DependencySet{}
+	dependenciesByTypeNames := map[spec.TypeName]DependencySet{}
 	for _, n := range g {
 		nodesByTypeNames[n.TypeName()] = n
 		dependenciesByTypeNames[n.TypeName()] = n.Dependencies
@@ -115,7 +116,7 @@ func (g DependencyGraph) Resolve() (ResolvedDependencies, error) {
 	// If no unresolvable or circular dependency is found, the node is considered resolved.
 	// And processing retries with the remaining dependent nodes.
 	for len(dependenciesByTypeNames) != 0 {
-		var typeNamesWithNoDependencies []SpecTypeName
+		var typeNamesWithNoDependencies []spec.TypeName
 		for typeName, dependencies := range dependenciesByTypeNames {
 			if len(dependencies) == 0 {
 				typeNamesWithNoDependencies = append(typeNamesWithNoDependencies, typeName)
@@ -166,7 +167,7 @@ func (g DependencyGraph) Resolve() (ResolvedDependencies, error) {
 type ResolvedDependencies []DependencyNode
 
 // DependenciesOfSpecTypeName returns the dependencies of a given spec.
-func (d ResolvedDependencies) DependenciesOfSpecTypeName(tn SpecTypeName) []SpecTypeName {
+func (d ResolvedDependencies) DependenciesOfSpecTypeName(tn spec.TypeName) []spec.TypeName {
 	for _, s := range d {
 		if s.Spec.TypeName == tn {
 			return s.Dependencies.TypeNames()

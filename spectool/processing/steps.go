@@ -1,4 +1,4 @@
-package spectool
+package processing
 
 import "context"
 

@@ -1,4 +1,4 @@
-package spectool
+package maputils
 
 func MapHasKey[K string | int, T any](m map[K]T, k K) bool {
 	if _, found := m[k]; found {
@@ -27,7 +27,7 @@ func MapValues[K string | int, T any](m map[K]T) []T {
 
 func MapKeys[K string | int, T any](m map[K]T) []K {
 	var keys []K
-	for k, _ := range m {
+	for k := range m {
 		keys = append(keys, k)
 	}
 	return keys

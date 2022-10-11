@@ -1,19 +1,20 @@
-package spectool
+package builtin
 
 import (
+	"github.com/morebec/misas-go/spectool/spec"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestEventFieldsShouldHaveDescriptionLinter(t *testing.T) {
-	warnings, _ := EventFieldsShouldHaveDescriptionLinter()(Spec{}, SpecGroup{
-		Spec{
+	warnings, _ := EventFieldsShouldHaveDescriptionLinter()(spec.Spec{}, spec.Group{
+		spec.Spec{
 			Type:        EventType,
 			TypeName:    "",
 			Description: "",
 			Annotations: nil,
 			Version:     "",
-			Source:      SpecSource{},
+			Source:      spec.Source{},
 			Properties: EventSpecProperties{
 				map[string]EventField{
 					"field": {

@@ -2,6 +2,10 @@ package spectool
 
 import (
 	"context"
+	"github.com/morebec/misas-go/spectool/builtin"
+	"github.com/morebec/misas-go/spectool/gogenerator"
+	"github.com/morebec/misas-go/spectool/processing"
+	"github.com/morebec/misas-go/spectool/spec"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -11,58 +15,14 @@ import (
 	"time"
 )
 
-const ToolVersion = "1.0"
-
-type ProcessingContext struct {
-	context.Context
-	Logger *zap.SugaredLogger
-
-	StartedAt time.Time
-	EndedAt   time.Time
-
-	Sources      []SpecSource
-	SystemSpec   Spec
-	Specs        SpecGroup
-	Dependencies ResolvedDependencies
-	OutputFiles  []OutputFile
-}
-
-func (c *ProcessingContext) SetSystem(spec Spec) {
-	if spec.Type != SystemSpecType {
-		panic(UnexpectedSpecTypeError(spec.Type, SystemSpecType))
-	}
-
-	c.SystemSpec = spec
-}
-
-func (c *ProcessingContext) AddSources(s []SpecSource) {
-	c.Sources = append(c.Sources, s...)
-}
-
-func (c *ProcessingContext) AddSpecGroup(specs SpecGroup) {
-	c.Specs.Merge(specs)
-}
-
-func (c *ProcessingContext) AddSpec(spec Spec) {
-	c.Specs = append(c.Specs, spec)
-}
-
-func (c *ProcessingContext) SetResolvedDependencies(graph ResolvedDependencies) {
-	c.Dependencies = graph
-}
-
-func (c *ProcessingContext) AddOutputFile(file OutputFile) {
-	c.OutputFiles = append(c.OutputFiles, file)
-}
-
-func Run(ctx context.Context, systemSpecFile string, steps ...Step[*ProcessingContext]) error {
+func Run(ctx context.Context, systemSpecFile string, steps ...processing.Step[*processing.Context]) error {
 	config := zap.NewDevelopmentConfig()
 	config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	config.DisableStacktrace = true
 	config.DisableCaller = true
 	logger, _ := config.Build()
 
-	pCtx := &ProcessingContext{
+	pCtx := &processing.Context{
 		Context:   ctx,
 		StartedAt: time.Now(),
 		Logger:    logger.Sugar(),
@@ -71,21 +31,21 @@ func Run(ctx context.Context, systemSpecFile string, steps ...Step[*ProcessingCo
 	doWork := func() error {
 		pCtx.Logger.Infof("Loading system spec at %s ...", systemSpecFile)
 
-		source, err := loadSourceFromFile(systemSpecFile)
+		source, err := processing.LoadSourceFromFile(systemSpecFile)
 		if err != nil {
 			return errors.Wrapf(err, "failed loading system spec at %s", systemSpecFile)
 		}
 
-		pCtx.AddSources([]SpecSource{source})
+		pCtx.AddSources([]spec.Source{source})
 
-		pCtx.SystemSpec, err = SystemSpecDeserializer().Deserialize(source)
+		pCtx.SystemSpec, err = processing.SystemSpecDeserializer().Deserialize(source)
 		if err != nil {
 			return errors.Wrapf(err, "failed loading system spec at %s", systemSpecFile)
 		}
 
 		pCtx.Logger.Info("System spec loaded successfully.")
 
-		err = RunSteps[*ProcessingContext](pCtx, steps...)
+		err = processing.RunSteps[*processing.Context](pCtx, steps...)
 		if err != nil {
 			return errors.Wrap(err, "spectool failed")
 		}
@@ -102,10 +62,10 @@ func Run(ctx context.Context, systemSpecFile string, steps ...Step[*ProcessingCo
 }
 
 // LoadSpecs returns a Step that allows loading the specs associated with the system Spec.
-func LoadSpecs(deserializers ...SpecDeserializer) Step[*ProcessingContext] {
-	return func(ctx *ProcessingContext) error {
+func LoadSpecs(deserializers ...processing.SpecDeserializer) processing.Step[*processing.Context] {
+	return func(ctx *processing.Context) error {
 		systemSpec := ctx.SystemSpec
-		props := systemSpec.Properties.(SystemSpecProperties)
+		props := systemSpec.Properties.(processing.SystemSpecProperties)
 
 		var paths []string
 		paths = append(paths, filepath.Dir(systemSpec.Source.Location))
@@ -113,7 +73,7 @@ func LoadSpecs(deserializers ...SpecDeserializer) Step[*ProcessingContext] {
 
 		ctx.Logger.Infof("Loading specs from paths [%s] ...", strings.Join(paths, ","))
 
-		sources, err := loadSourcesAtPaths(paths...)
+		sources, err := processing.LoadSourcesAtPaths(paths...)
 		if err != nil {
 			return err
 		}
@@ -126,7 +86,7 @@ func LoadSpecs(deserializers ...SpecDeserializer) Step[*ProcessingContext] {
 			}
 		}
 
-		d := NewCompositeDeserializer(deserializers...)
+		d := processing.NewCompositeDeserializer(deserializers...)
 		for _, s := range sources {
 			spec, err := d.Deserialize(s)
 			ctx.AddSpec(spec)
@@ -142,9 +102,9 @@ func LoadSpecs(deserializers ...SpecDeserializer) Step[*ProcessingContext] {
 }
 
 // LintSpecs returns a Step that allows linting the specs of the system for errors or warnings.
-func LintSpecs(linters ...Linter) Step[*ProcessingContext] {
-	return func(ctx *ProcessingContext) error {
-		linter := CompositeLinter(linters...)
+func LintSpecs(linters ...processing.Linter) processing.Step[*processing.Context] {
+	return func(ctx *processing.Context) error {
+		linter := processing.CompositeLinter(linters...)
 
 		ctx.Logger.Infof("Linting (%d) specs ...", len(ctx.Specs)+1) // +1 to include system spec as well.
 		warnings, errs := linter(ctx.SystemSpec, ctx.Specs)
@@ -169,9 +129,9 @@ func LintSpecs(linters ...Linter) Step[*ProcessingContext] {
 }
 
 // ResolveDependencies returns a Step that resolves the dependencies of the system.
-func ResolveDependencies(providers ...DependencyProvider) Step[*ProcessingContext] {
-	return func(ctx *ProcessingContext) error {
-		var nodes []DependencyNode
+func ResolveDependencies(providers ...processing.DependencyProvider) processing.Step[*processing.Context] {
+	return func(ctx *processing.Context) error {
+		var nodes []processing.DependencyNode
 
 		ctx.Logger.Info("Resolving dependencies ...")
 		for _, provider := range providers {
@@ -182,7 +142,7 @@ func ResolveDependencies(providers ...DependencyProvider) Step[*ProcessingContex
 			nodes = append(nodes, n...)
 		}
 
-		graph := NewDependencyGraph(nodes...)
+		graph := processing.NewDependencyGraph(nodes...)
 		resolvedDependencies, err := graph.Resolve()
 		if err != nil {
 			return errors.Wrap(err, "failed resolving dependencies")
@@ -195,8 +155,8 @@ func ResolveDependencies(providers ...DependencyProvider) Step[*ProcessingContex
 	}
 }
 
-func GenerateCommandDocumentation() Step[*ProcessingContext] {
-	return func(ctx *ProcessingContext) error {
+func GenerateCommandDocumentation() processing.Step[*processing.Context] {
+	return func(ctx *processing.Context) error {
 		ctx.Logger.Info("Generating documentation for commands ...")
 
 		ctx.Logger.Info("Documentation for commands generated successfully.")
@@ -205,8 +165,8 @@ func GenerateCommandDocumentation() Step[*ProcessingContext] {
 }
 
 // WriteOutputFiles returns a step that writes the output files
-func WriteOutputFiles() Step[*ProcessingContext] {
-	return func(ctx *ProcessingContext) error {
+func WriteOutputFiles() processing.Step[*processing.Context] {
+	return func(ctx *processing.Context) error {
 		ctx.Logger.Info("Writing output files ...")
 		for _, file := range ctx.OutputFiles {
 			ctx.Logger.Infof("Writing file %s ...", file.Path)
@@ -227,64 +187,64 @@ func Default(systemSpecFile string) func(ctx context.Context) error {
 			ctx,
 			systemSpecFile,
 			LoadSpecs(
-				SystemSpecDeserializer(),
-				CommandDeserializer(),
-				QueryDeserializer(),
-				EventDeserializer(),
-				StructDeserializer(),
-				EnumDeserializer(),
-				HTTPEndpointDeserializer(),
+				processing.SystemSpecDeserializer(),
+				builtin.CommandDeserializer(),
+				builtin.QueryDeserializer(),
+				builtin.EventDeserializer(),
+				builtin.StructDeserializer(),
+				builtin.EnumDeserializer(),
+				builtin.HTTPEndpointDeserializer(),
 			),
 
 			LintSpecs(
 				// Common
-				SpecificationsMustNotHaveUndefinedTypes(),
-				SpecificationMustNotHaveUndefinedTypeNames(),
-				SpecificationsMustNotHaveDuplicateTypeNames(),
-				SpecificationsMustHaveDescriptions(),
-				SpecificationsMustHaveLowerCaseTypeNames(),
+				processing.SpecificationsMustNotHaveUndefinedTypes(),
+				processing.SpecificationMustNotHaveUndefinedTypeNames(),
+				processing.SpecificationsMustNotHaveDuplicateTypeNames(),
+				processing.SpecificationsMustHaveDescriptions(),
+				processing.SpecificationsMustHaveLowerCaseTypeNames(),
 
-				SpecificationsShouldFollowNamingConvention(),
+				processing.SpecificationsShouldFollowNamingConvention(),
 
 				// Structs
-				StructFieldsShouldHaveDescriptionLinter(),
+				builtin.StructFieldsShouldHaveDescriptionLinter(),
 
 				// Enums
-				EnumBaseTypeShouldBeSupportedEnumBaseType(),
+				builtin.EnumBaseTypeShouldBeSupportedEnumBaseType(),
 
 				// Commands
-				CommandFieldsShouldHaveDescriptionLinter(),
+				builtin.CommandFieldsShouldHaveDescriptionLinter(),
 
 				// Queries
-				QueryFieldsShouldHaveDescriptionLinter(),
-				
+				builtin.QueryFieldsShouldHaveDescriptionLinter(),
+
 				// Events
-				EventFieldsShouldHaveDescriptionLinter(),
-				EventsMustHaveDateTimeField(),
+				builtin.EventFieldsShouldHaveDescriptionLinter(),
+				builtin.EventsMustHaveDateTimeField(),
 
 				// HTTP Endpoints
-				HTTPEndpointsShouldFollowNamingConvention(),
-				HTTPEndpointPathsShouldStartWithForwardSlash(),
-				HTTPEndpointPathsShouldNotEndWithForwardSlash(),
-				HTTPEndpointPathsShouldBeUnique(),
-				HTTPEndpointPathShouldBeLowercase(),
-				HTTPEndpointsShouldHaveEitherGETorPOSTMethod(),
-				HTTPEndpointsWithCommandRequestTypeMustHaveMethodPOST(),
-				HTTPEndpointsWithQueryRequestTypeMustHaveMethodGET(),
-				HTTPEndpointResponseShouldHaveValidStatusCode(),
+				builtin.HTTPEndpointsShouldFollowNamingConvention(),
+				builtin.HTTPEndpointPathsShouldStartWithForwardSlash(),
+				builtin.HTTPEndpointPathsShouldNotEndWithForwardSlash(),
+				builtin.HTTPEndpointPathsShouldBeUnique(),
+				builtin.HTTPEndpointPathShouldBeLowercase(),
+				builtin.HTTPEndpointsShouldHaveEitherGETorPOSTMethod(),
+				builtin.HTTPEndpointsWithCommandRequestTypeMustHaveMethodPOST(),
+				builtin.HTTPEndpointsWithQueryRequestTypeMustHaveMethodGET(),
+				builtin.HTTPEndpointResponseShouldHaveValidStatusCode(),
 			),
 
 			ResolveDependencies(
-				SystemDependencyProvider(),
-				CommandDependencyProvider(),
-				QueryDependencyProvider(),
-				EventDependencyProvider(),
-				StructDependencyProvider(),
-				EnumDependencyProvider(),
-				HTTPEndpointDependencyProvider(),
+				processing.SystemDependencyProvider(),
+				builtin.CommandDependencyProvider(),
+				builtin.QueryDependencyProvider(),
+				builtin.EventDependencyProvider(),
+				builtin.StructDependencyProvider(),
+				builtin.EnumDependencyProvider(),
+				builtin.HTTPEndpointDependencyProvider(),
 			),
 
-			GoProcessor(),
+			gogenerator.GoProcessor(),
 
 			WriteOutputFiles(),
 		)

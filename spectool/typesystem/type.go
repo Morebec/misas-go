@@ -1,4 +1,4 @@
-package spectool
+package typesystem
 
 import (
 	"regexp"
@@ -68,6 +68,10 @@ func (dt DataType) IsUserDefined() bool {
 func (dt DataType) IsBuiltIn() bool {
 	baseType := dt.BaseType()
 
+	if dt.IsContainer() {
+		return true
+	}
+
 	for _, t := range BuiltInDataTypes() {
 		if t == baseType {
 			return true
@@ -101,13 +105,11 @@ func (dt DataType) isNull() bool {
 // If the type is not a container, will return the type itself.
 func (dt DataType) BaseType() DataType {
 	if dt.IsArray() {
-		// return DataType(strings.Replace(string(dt), "[]", "", 1)).BaseType()
-		return Array
+		return dt.ContainerInfo().ValueType.BaseType()
 	}
 
 	if dt.IsMap() {
-		// return dt.MapInfo().ValueType.BaseType()
-		return Map
+		return dt.ContainerInfo().ValueType.BaseType()
 	}
 
 	return dt

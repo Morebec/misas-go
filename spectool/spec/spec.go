@@ -1,22 +1,35 @@
-package spectool
+package spec
 
 import (
+	"github.com/morebec/misas-go/spectool/typesystem"
 	"github.com/pkg/errors"
 	"strings"
 )
 
-// SpecType Represents the "type" of a specification (e.g. Command, Struct, Query, Error)
-type SpecType Type
+// Source represents a source file for a specification.
+type Source struct {
+	// Absolute path to the source.
+	Location string
 
-// SpecTypeName represents the user defined type name of a Spec.
-type SpecTypeName Type
+	// Content of the Source.
+	Data []byte
+
+	// Type of the spec of the source.
+	SpecType Type
+}
+
+// Type Represents the "type" of a specification (e.g. Command, Struct, Query, Error)
+type Type typesystem.Type
+
+// TypeName represents the user defined type name of a Spec.
+type TypeName typesystem.Type
 
 // FollowsModuleConvention indicates if the type name follows the `module.type.other.other` convention.
-func (t SpecTypeName) FollowsModuleConvention() bool {
+func (t TypeName) FollowsModuleConvention() bool {
 	return len(t.Parts()) >= 2
 }
 
-func (t SpecTypeName) ModuleName() string {
+func (t TypeName) ModuleName() string {
 	if !t.FollowsModuleConvention() {
 		return ""
 	}
@@ -25,7 +38,7 @@ func (t SpecTypeName) ModuleName() string {
 }
 
 // Parts returns the different parts in the type name. Parts are split by a "." character
-func (t SpecTypeName) Parts() []string {
+func (t TypeName) Parts() []string {
 	parts := strings.Split(string(t), ".")
 	if len(parts) == 0 {
 		return []string{
@@ -35,11 +48,11 @@ func (t SpecTypeName) Parts() []string {
 	return parts
 }
 
-// UndefinedSpecificationTypename constant used to test against undefined SpecTypeName.
-const UndefinedSpecificationTypename SpecTypeName = ""
+// UndefinedSpecificationTypename constant used to test against undefined TypeName.
+const UndefinedSpecificationTypename TypeName = ""
 
-// UndefinedSpecificationType constant used to test against undefined Spec SpecType.
-const UndefinedSpecificationType SpecType = ""
+// UndefinedSpecificationType constant used to test against undefined Spec Type.
+const UndefinedSpecificationType Type = ""
 
 // Annotations Represents a list of annotations.
 type Annotations map[string]any
@@ -62,18 +75,18 @@ func (a Annotations) GetOrDefault(key string, defaultValue any) any {
 	return defaultValue
 }
 
-// SpecProperties Represents the SpecType specific properties of a Spec.
-type SpecProperties interface {
+// Properties Represents the Type specific properties of a Spec.
+type Properties interface {
 	IsSpecProperties()
 }
 
 // Spec Represents a specification.
 type Spec struct {
-	// Type returns the SpecType of a Spec.
-	Type SpecType `yaml:"type"`
+	// Type returns the Type of Spec.
+	Type Type `yaml:"type"`
 
-	// TypeName returns the SpecTypeName of a Spec.
-	TypeName SpecTypeName `yaml:"typeName"`
+	// TypeName returns the TypeName of a Spec.
+	TypeName TypeName `yaml:"typeName"`
 
 	// Description returns the description of a Spec.
 	Description string `yaml:"description"`
@@ -85,18 +98,18 @@ type Spec struct {
 	Version string `yaml:"version"`
 
 	// Source returns the SpecificationSource of a Spec.
-	Source SpecSource
+	Source Source
 
-	Properties SpecProperties
+	Properties Properties
 }
 
-// SpecGroup Represents a list of Spec.
-type SpecGroup []Spec
+// Group Represents a list of Spec.
+type Group []Spec
 
 // Merge Allows merging a group with another one.
-func (g SpecGroup) Merge(group SpecGroup) SpecGroup {
+func (g Group) Merge(group Group) Group {
 	merged := g
-	typeNameIndex := map[SpecTypeName]any{}
+	typeNameIndex := map[TypeName]any{}
 	for _, s := range g {
 		typeNameIndex[s.TypeName] = nil
 	}
@@ -111,8 +124,8 @@ func (g SpecGroup) Merge(group SpecGroup) SpecGroup {
 }
 
 // Select allows filtering the group for certain specifications.
-func (g SpecGroup) Select(p func(s Spec) bool) SpecGroup {
-	r := SpecGroup{}
+func (g Group) Select(p func(s Spec) bool) Group {
+	r := Group{}
 	for _, s := range g {
 		if p(s) {
 			r = append(r, s)
@@ -122,13 +135,13 @@ func (g SpecGroup) Select(p func(s Spec) bool) SpecGroup {
 	return r
 }
 
-func (g SpecGroup) SelectType(t SpecType) SpecGroup {
+func (g Group) SelectType(t Type) Group {
 	return g.Select(func(s Spec) bool {
 		return s.Type == t
 	})
 }
 
-func (g SpecGroup) SelectTypeName(t SpecTypeName) Spec {
+func (g Group) SelectTypeName(t TypeName) Spec {
 	for _, s := range g {
 		if s.TypeName == t {
 			return s
@@ -138,8 +151,8 @@ func (g SpecGroup) SelectTypeName(t SpecTypeName) Spec {
 	return Spec{}
 }
 
-func (g SpecGroup) Exclude(p func(s Spec) bool) SpecGroup {
-	r := SpecGroup{}
+func (g Group) Exclude(p func(s Spec) bool) Group {
+	r := Group{}
 	for _, s := range g {
 		if !p(s) {
 			r = append(r, s)
@@ -149,14 +162,14 @@ func (g SpecGroup) Exclude(p func(s Spec) bool) SpecGroup {
 	return r
 }
 
-func (g SpecGroup) ExcludeType(t SpecType) SpecGroup {
+func (g Group) ExcludeType(t Type) Group {
 	return g.Exclude(func(s Spec) bool {
 		return s.Type == t
 	})
 }
 
-// MapSpecGroup performs a map operation on a SpecGroup
-func MapSpecGroup[T any](g SpecGroup, p func(s Spec) T) []T {
+// MapSpecGroup performs a map operation on a Group
+func MapSpecGroup[T any](g Group, p func(s Spec) T) []T {
 	var mapped []T
 	for _, s := range g {
 		mapped = append(mapped, p(s))
@@ -165,6 +178,6 @@ func MapSpecGroup[T any](g SpecGroup, p func(s Spec) T) []T {
 	return mapped
 }
 
-func UnexpectedSpecTypeError(actual SpecType, expected SpecType) error {
+func UnexpectedSpecTypeError(actual Type, expected Type) error {
 	return errors.Errorf("expected spec of type %s, got %s", expected, actual)
 }

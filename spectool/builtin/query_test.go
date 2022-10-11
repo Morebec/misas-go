@@ -1,21 +1,22 @@
-package spectool
+package builtin
 
 import (
+	"github.com/morebec/misas-go/spectool/spec"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
-func TestCommandFieldsShouldHaveDescriptionLinter(t *testing.T) {
-	warnings, _ := CommandFieldsShouldHaveDescriptionLinter()(Spec{}, SpecGroup{
-		Spec{
-			Type:        CommandType,
+func TestQueryFieldsShouldHaveDescriptionLinter(t *testing.T) {
+	warnings, _ := QueryFieldsShouldHaveDescriptionLinter()(spec.Spec{}, spec.Group{
+		spec.Spec{
+			Type:        QueryType,
 			TypeName:    "",
 			Description: "",
 			Annotations: nil,
 			Version:     "",
-			Source:      SpecSource{},
-			Properties: CommandSpecProperties{
-				map[string]CommandField{
+			Source:      spec.Source{},
+			Properties: QuerySpecProperties{
+				map[string]QueryField{
 					"field": {
 						Name:        "",
 						Description: "",

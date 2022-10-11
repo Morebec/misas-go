@@ -1,7 +1,9 @@
-package spectool
+package processing
 
 import (
 	"github.com/hashicorp/go-version"
+	"github.com/morebec/misas-go/spectool/maputils"
+	"github.com/morebec/misas-go/spectool/spec"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v3"
 	"io/ioutil"
@@ -10,26 +12,16 @@ import (
 	"strings"
 )
 
-// SpecSource represents a source file for a specification.
-type SpecSource struct {
-	// Absolute path to the source.
-	Location string
-
-	// Content of the Source.
-	Data []byte
-
-	// Type of the spec of the source.
-	SpecType SpecType
-}
+const SpecFormatVersion = "1.0"
 
 type ParsedSpec struct {
-	Spec
+	spec.Spec
 }
 
-// loads a list of paths of files and directories and returns the encountered specs as a list of MappedSpec.
-func loadSourcesAtPaths(paths ...string) ([]SpecSource, error) {
+// LoadSourcesAtPaths loads a list of paths of files and directories and returns the encountered specs as a list of spec.Source.
+func LoadSourcesAtPaths(paths ...string) ([]spec.Source, error) {
 	// Use a map to avoid duplicates.
-	sources := map[string]SpecSource{}
+	sources := map[string]spec.Source{}
 
 	// Use a map to avoid path duplicates.
 	pathDeduplicationMap := map[string]struct{}{}
@@ -54,7 +46,7 @@ func loadSourcesAtPaths(paths ...string) ([]SpecSource, error) {
 				sources[s.Location] = s
 			}
 		} else {
-			source, err := loadSourceFromFile(path)
+			source, err := LoadSourceFromFile(path)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed loading spec at %s", path)
 			}
@@ -62,12 +54,12 @@ func loadSourcesAtPaths(paths ...string) ([]SpecSource, error) {
 		}
 	}
 
-	return MapValues(sources), nil
+	return maputils.MapValues(sources), nil
 }
 
 // Loads the sources found in a directory.
-func loadSourcesInDirectory(path string) ([]SpecSource, error) {
-	var sources []SpecSource
+func loadSourcesInDirectory(path string) ([]spec.Source, error) {
+	var sources []spec.Source
 
 	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -78,7 +70,7 @@ func loadSourcesInDirectory(path string) ([]SpecSource, error) {
 			return nil
 		}
 
-		src, err := loadSourceFromFile(path)
+		src, err := LoadSourceFromFile(path)
 		if err != nil {
 			return err
 		}
@@ -95,52 +87,52 @@ func loadSourcesInDirectory(path string) ([]SpecSource, error) {
 	return sources, nil
 }
 
-// loads a source from a file at a given path.
-func loadSourceFromFile(path string) (SpecSource, error) {
+// LoadSourceFromFile loads a source from a file at a given path.
+func LoadSourceFromFile(path string) (spec.Source, error) {
 	absPath, err := filepath.Abs(path)
 	if err != nil {
-		return SpecSource{}, errors.Wrapf(err, "failed loading file %s", path)
+		return spec.Source{}, errors.Wrapf(err, "failed loading file %s", path)
 	}
 
 	info, err := os.Stat(absPath)
 	if err != nil {
-		return SpecSource{}, errors.Wrapf(err, "failed loading file %s", path)
+		return spec.Source{}, errors.Wrapf(err, "failed loading file %s", path)
 	}
 
 	if info.IsDir() {
-		return SpecSource{}, errors.Errorf("failed loading file \"%s\", expected file got directory", path)
+		return spec.Source{}, errors.Errorf("failed loading file \"%s\", expected file got directory", path)
 	}
 
 	data, err := ioutil.ReadFile(absPath)
 	if err != nil {
-		return SpecSource{}, errors.Wrapf(err, "failed loading file %s", path)
+		return spec.Source{}, errors.Wrapf(err, "failed loading file %s", path)
 	}
 
 	parsedYaml, err := parseYaml(data)
 	if err != nil {
-		return SpecSource{}, errors.Wrapf(err, "failed loading file %s", path)
+		return spec.Source{}, errors.Wrapf(err, "failed loading file %s", path)
 	}
 
-	if !MapHasKey(parsedYaml, "version") {
-		parsedYaml["version"] = ToolVersion
+	if !maputils.MapHasKey(parsedYaml, "version") {
+		parsedYaml["version"] = SpecFormatVersion
 	}
 
-	specVersion, err := version.NewVersion(MapGetOrDefault(parsedYaml, "version", "").(string))
+	specVersion, err := version.NewVersion(maputils.MapGetOrDefault(parsedYaml, "version", "").(string))
 	if err != nil {
-		return SpecSource{}, errors.Wrapf(err, "failed loading file %s: invalid version", path)
+		return spec.Source{}, errors.Wrapf(err, "failed loading file %s: invalid version", path)
 	}
-	toolVersion, err := version.NewVersion(ToolVersion)
+	toolVersion, err := version.NewVersion(SpecFormatVersion)
 	if err != nil {
 		panic(errors.Wrap(err, "Invalid Tool Version"))
 	}
 
 	if specVersion.GreaterThan(toolVersion) {
-		return SpecSource{}, errors.Errorf("failed loading file %s: invalid version %s, expected %s", path, specVersion.String(), ToolVersion)
+		return spec.Source{}, errors.Errorf("failed loading file %s: invalid version %s, expected %s", path, specVersion.String(), SpecFormatVersion)
 	}
 
 	ensureHasKeys := func(m map[string]any, keys ...string) error {
 		for _, k := range keys {
-			if !MapHasKey(m, k) {
+			if !maputils.MapHasKey(m, k) {
 				return errors.Errorf("invalid spec at %s, property %s was not defined", path, k)
 			}
 		}
@@ -153,12 +145,12 @@ func loadSourceFromFile(path string) (SpecSource, error) {
 		"typeName",
 		"version",
 	); err != nil {
-		return SpecSource{}, errors.Wrapf(err, "failed loading file %s", path)
+		return spec.Source{}, errors.Wrapf(err, "failed loading file %s", path)
 	}
 
 	specType := parsedYaml["type"].(string)
 
-	return SpecSource{Location: absPath, Data: data, SpecType: SpecType(specType)}, nil
+	return spec.Source{Location: absPath, Data: data, SpecType: spec.Type(specType)}, nil
 }
 
 // Parses YAML.

@@ -1,10 +1,15 @@
-package spectool
+package gogenerator
 
 import (
 	"bufio"
 	"bytes"
 	"fmt"
 	"github.com/iancoleman/strcase"
+	"github.com/morebec/misas-go/spectool/builtin"
+	"github.com/morebec/misas-go/spectool/maputils"
+	"github.com/morebec/misas-go/spectool/processing"
+	"github.com/morebec/misas-go/spectool/spec"
+	"github.com/morebec/misas-go/spectool/typesystem"
 	"github.com/pkg/errors"
 	"go/format"
 	"io/ioutil"
@@ -72,7 +77,7 @@ func (p *GoPackage) ImportPath() string {
 
 // GeneratedFiles Returns the files of this package.
 func (p *GoPackage) GeneratedFiles() []*GeneratedGoFile {
-	return MapValues(p.generatedFiles)
+	return maputils.MapValues(p.generatedFiles)
 }
 
 // GeneratedFilesRecursive returns the files of this package and its subpackages and their subpackages...
@@ -182,9 +187,9 @@ func BuildGoPackage(path string, parent *GoPackage) (*GoPackage, error) {
 }
 
 // FindGoMod finds the go.mod file using the system Spec's location.
-func FindGoMod(systemSpec Spec) (GoMod, error) {
-	if systemSpec.Type != SystemSpecType {
-		return GoMod{}, UnexpectedSpecTypeError(systemSpec.Type, SystemSpecType)
+func FindGoMod(systemSpec spec.Spec) (GoMod, error) {
+	if systemSpec.Type != processing.SystemSpecType {
+		return GoMod{}, spec.UnexpectedSpecTypeError(systemSpec.Type, processing.SystemSpecType)
 	}
 
 	goModPath := filepath.Dir(systemSpec.Source.Location) + "/go.mod"
@@ -219,11 +224,11 @@ func FindGoMod(systemSpec Spec) (GoMod, error) {
 // GoType represents a type in Go.
 type GoType struct {
 	TypeName         string
-	InternalTypeName DataType
+	InternalTypeName typesystem.DataType
 	ImportPath       string
 }
 
-func NewGoType(typeName string, internalTypeName DataType, importPath string) GoType {
+func NewGoType(typeName string, internalTypeName typesystem.DataType, importPath string) GoType {
 	return GoType{TypeName: typeName, InternalTypeName: internalTypeName, ImportPath: importPath}
 }
 
@@ -258,7 +263,7 @@ func (f *GeneratedGoFile) TypesUsed() []GoType {
 		}
 	}
 
-	return MapValues(used)
+	return maputils.MapValues(used)
 }
 
 // GoSnippet represents a piece of generated code.
@@ -314,17 +319,17 @@ func (ctx *GoSnippetGenerationContext) PackageTree() *GoPackage {
 }
 
 type GoProcessingContext struct {
-	ParentContext *ProcessingContext
+	ParentContext *processing.Context
 	PackageTree   *GoPackage
 }
 
-func (ctx *GoProcessingContext) Specs() SpecGroup {
+func (ctx *GoProcessingContext) Specs() spec.Group {
 	return ctx.ParentContext.Specs
 }
 
 // GenerateCodeForSpec generates some go code for a given spec using a template and some data.
 // It adds the resulting file and snippets to the GoProcessingContext.
-func GenerateCodeForSpec(ctx *GoSnippetGenerationContext, spec Spec) error {
+func GenerateCodeForSpec(ctx *GoSnippetGenerationContext, spec spec.Spec) error {
 	// Find target package
 	pkg := ctx.PackageTree().FindPackageForPath(spec.Source.Location)
 	if pkg == nil {
@@ -387,7 +392,7 @@ func GenerateSnippet(ctx *GoSnippetGenerationContext) (GoSnippet, error) {
 		},
 
 		// Converts a DataType to a GoType.
-		"AsResolvedGoType": func(t DataType) string {
+		"AsResolvedGoType": func(t typesystem.DataType) string {
 			rgt, err := ResolveGoType(ctx, t)
 			if err != nil {
 				panic(err)
@@ -423,27 +428,27 @@ func GenerateSnippet(ctx *GoSnippetGenerationContext) (GoSnippet, error) {
 }
 
 // ResolveGoType Resolves a GoType from an internal Type in a GoSnippetGenerationContext.
-func ResolveGoType(ctx *GoSnippetGenerationContext, t DataType) (GoType, error) {
+func ResolveGoType(ctx *GoSnippetGenerationContext, t typesystem.DataType) (GoType, error) {
 	doResolve := func() (GoType, error) {
 		switch t {
-		case Null:
-			return NewGoType("nil", Null, ""), nil
-		case Identifier:
-			return NewGoType("string", Identifier, ""), nil
-		case String:
-			return NewGoType("string", String, ""), nil
-		case Bool:
-			return NewGoType("bool", Bool, ""), nil
-		case Int:
-			return NewGoType("int64", Int, ""), nil
-		case Float:
-			return NewGoType("float64", Float, ""), nil
-		case Date:
-			return NewGoType("time.Time", Date, "time"), nil
-		case DateTime:
-			return NewGoType("time.Time", DateTime, "time"), nil
-		case Char:
-			return NewGoType("rune", Char, ""), nil
+		case typesystem.Null:
+			return NewGoType("nil", typesystem.Null, ""), nil
+		case typesystem.Identifier:
+			return NewGoType("string", typesystem.Identifier, ""), nil
+		case typesystem.String:
+			return NewGoType("string", typesystem.String, ""), nil
+		case typesystem.Bool:
+			return NewGoType("bool", typesystem.Bool, ""), nil
+		case typesystem.Int:
+			return NewGoType("int64", typesystem.Int, ""), nil
+		case typesystem.Float:
+			return NewGoType("float64", typesystem.Float, ""), nil
+		case typesystem.Date:
+			return NewGoType("time.Time", typesystem.Date, "time"), nil
+		case typesystem.DateTime:
+			return NewGoType("time.Time", typesystem.DateTime, "time"), nil
+		case typesystem.Char:
+			return NewGoType("rune", typesystem.Char, ""), nil
 		}
 
 		if t.IsContainer() {
@@ -511,7 +516,7 @@ func FormatGoSource(content []byte) ([]byte, error) {
 
 // extractAggregateName extracts the name of an aggregate for a SpecificationTypeName of a Command/Query/Payload.
 // E.g. website.add -> website.
-func extractAggregateName(name SpecTypeName) string {
+func extractAggregateName(name spec.TypeName) string {
 	parts := strings.Split(string(name), ".")
 
 	if len(parts) == 0 {
@@ -524,8 +529,8 @@ func extractAggregateName(name SpecTypeName) string {
 }
 
 // GoProcessor processes go code generation.
-func GoProcessor() Step[*ProcessingContext] {
-	return func(ctx *ProcessingContext) error {
+func GoProcessor() processing.Step[*processing.Context] {
+	return func(ctx *processing.Context) error {
 
 		goMod, err := FindGoMod(ctx.SystemSpec)
 		if err != nil {
@@ -542,13 +547,13 @@ func GoProcessor() Step[*ProcessingContext] {
 			PackageTree:   tree,
 		}
 
-		processingHandlers := map[SpecType]func(ctx *GoProcessingContext, s Spec) error{
-			CommandType:      generateCommand,
-			QueryType:        generateQuery,
-			EventType:        generateEvent,
-			StructType:       generateStruct,
-			EnumType:         generateEnum,
-			HTTPEndpointType: generateHTTPEndpoint,
+		processingHandlers := map[spec.Type]func(ctx *GoProcessingContext, s spec.Spec) error{
+			builtin.CommandType:      generateCommand,
+			builtin.QueryType:        generateQuery,
+			builtin.EventType:        generateEvent,
+			builtin.StructType:       generateStruct,
+			builtin.EnumType:         generateEnum,
+			builtin.HTTPEndpointType: generateHTTPEndpoint,
 		}
 
 		for _, dep := range ctx.Dependencies {
@@ -566,7 +571,7 @@ func GoProcessor() Step[*ProcessingContext] {
 			if err != nil {
 				return errors.Wrap(err, "go processor failed")
 			}
-			ctx.AddOutputFile(OutputFile{
+			ctx.AddOutputFile(processing.OutputFile{
 				Path: gf.Path,
 				Data: []byte(code),
 			})
@@ -577,7 +582,7 @@ func GoProcessor() Step[*ProcessingContext] {
 	}
 }
 
-func generateStruct(ctx *GoProcessingContext, evt Spec) error {
+func generateStruct(ctx *GoProcessingContext, evt spec.Spec) error {
 	templateCode := `
 const {{ .StructName }}TypeName event.TypeName = "{{ .TypeName }}"
 
@@ -601,7 +606,7 @@ func (c {{ .StructName }}) TypeName() vent.TypeName {
 		StructName  string
 		TypeName    string
 		FilePath    string
-		Fields      map[string]StructField
+		Fields      map[string]builtin.StructField
 		Description string
 	}
 
@@ -610,7 +615,7 @@ func (c {{ .StructName }}) TypeName() vent.TypeName {
 		StructName:  evt.Annotations.GetOrDefault("gen:go:name", strcase.ToCamel(string(evt.TypeName))).(string),
 		Description: strings.ReplaceAll(strings.TrimSuffix(evt.Description, "\n"), "\n", "\n// "),
 		TypeName:    string(evt.TypeName),
-		Fields:      evt.Properties.(StructSpecProperties).Fields,
+		Fields:      evt.Properties.(builtin.StructSpecProperties).Fields,
 	}
 
 	//goland:noinspection GoRedundantConversion
@@ -622,7 +627,7 @@ func (c {{ .StructName }}) TypeName() vent.TypeName {
 		[]GoType{
 			{
 				TypeName:         string(templateData.StructName),
-				InternalTypeName: DataType(evt.TypeName),
+				InternalTypeName: typesystem.DataType(evt.TypeName),
 				ImportPath:       "",
 			},
 		},
@@ -631,8 +636,9 @@ func (c {{ .StructName }}) TypeName() vent.TypeName {
 
 	return GenerateCodeForSpec(tem, evt)
 }
-func generateEnum(ctx *GoProcessingContext, enum Spec) error {
-	props := enum.Properties.(EnumSpecProperties)
+
+func generateEnum(ctx *GoProcessingContext, enum spec.Spec) error {
+	props := enum.Properties.(builtin.EnumSpecProperties)
 
 	templateCode := `
 // {{ .EnumName }} {{ .Description }}
@@ -646,9 +652,9 @@ const ({{ range $value := .Values }}
 `
 	type TemplateData struct {
 		EnumName     string
-		EnumBaseType DataType
+		EnumBaseType typesystem.DataType
 		TypeName     string
-		Values       map[string]EnumValue
+		Values       map[string]builtin.EnumValue
 		Description  string
 	}
 
@@ -658,7 +664,7 @@ const ({{ range $value := .Values }}
 		EnumName:     enum.Annotations.GetOrDefault("gen:go:name", strcase.ToCamel(string(enum.TypeName))).(string),
 		Description:  strings.ReplaceAll(strings.TrimSuffix(enum.Description, "\n"), "\n", "\n// "),
 		TypeName:     string(enum.TypeName),
-		EnumBaseType: DataType(props.BaseType),
+		EnumBaseType: typesystem.DataType(props.BaseType),
 		Values:       props.Values,
 	}
 
@@ -671,7 +677,7 @@ const ({{ range $value := .Values }}
 		[]GoType{
 			{
 				TypeName:         string(templateData.EnumName),
-				InternalTypeName: DataType(enum.TypeName),
+				InternalTypeName: typesystem.DataType(enum.TypeName),
 				ImportPath:       "",
 			},
 		},
@@ -682,7 +688,7 @@ const ({{ range $value := .Values }}
 }
 
 // generates the Go Code for a command.Command.
-func generateCommand(ctx *GoProcessingContext, cmd Spec) error {
+func generateCommand(ctx *GoProcessingContext, cmd spec.Spec) error {
 	templateCode := `
 const {{ .StructName }}TypeName command.TypeName = "{{ .TypeName }}"
 
@@ -706,7 +712,7 @@ func (c {{ .StructName }}) TypeName() command.TypeName {
 		StructName  string
 		TypeName    string
 		FilePath    string
-		Fields      map[string]CommandField
+		Fields      map[string]builtin.CommandField
 		Description string
 	}
 
@@ -715,7 +721,7 @@ func (c {{ .StructName }}) TypeName() command.TypeName {
 		StructName:  cmd.Annotations.GetOrDefault("gen:go:name", strcase.ToCamel(string(cmd.TypeName))+"Command").(string),
 		Description: strings.ReplaceAll(strings.TrimSuffix(cmd.Description, "\n"), "\n", "\n// "),
 		TypeName:    string(cmd.TypeName),
-		Fields:      cmd.Properties.(CommandSpecProperties).Fields,
+		Fields:      cmd.Properties.(builtin.CommandSpecProperties).Fields,
 	}
 
 	//goland:noinspection GoRedundantConversion
@@ -727,7 +733,7 @@ func (c {{ .StructName }}) TypeName() command.TypeName {
 		[]GoType{
 			{
 				TypeName:         string(templateData.StructName),
-				InternalTypeName: DataType(cmd.TypeName),
+				InternalTypeName: typesystem.DataType(cmd.TypeName),
 				ImportPath:       "",
 			},
 		},
@@ -740,7 +746,7 @@ func (c {{ .StructName }}) TypeName() command.TypeName {
 }
 
 // generates the Go Code for a query.Query.
-func generateQuery(ctx *GoProcessingContext, query Spec) error {
+func generateQuery(ctx *GoProcessingContext, query spec.Spec) error {
 	templateCode := `
 const {{ .StructName }}TypeName query.TypeName = "{{ .TypeName }}"
 
@@ -764,7 +770,7 @@ func (c {{ .StructName }}) TypeName() query.TypeName {
 		StructName  string
 		TypeName    string
 		FilePath    string
-		Fields      map[string]QueryField
+		Fields      map[string]builtin.QueryField
 		Description string
 	}
 
@@ -773,7 +779,7 @@ func (c {{ .StructName }}) TypeName() query.TypeName {
 		StructName:  query.Annotations.GetOrDefault("gen:go:name", strcase.ToCamel(string(query.TypeName))+"Query").(string),
 		Description: strings.ReplaceAll(strings.TrimSuffix(query.Description, "\n"), "\n", "\n// "),
 		TypeName:    string(query.TypeName),
-		Fields:      query.Properties.(QuerySpecProperties).Fields,
+		Fields:      query.Properties.(builtin.QuerySpecProperties).Fields,
 	}
 
 	//goland:noinspection GoRedundantConversion
@@ -785,7 +791,7 @@ func (c {{ .StructName }}) TypeName() query.TypeName {
 		[]GoType{
 			{
 				TypeName:         string(templateData.StructName),
-				InternalTypeName: DataType(query.TypeName),
+				InternalTypeName: typesystem.DataType(query.TypeName),
 				ImportPath:       "",
 			},
 		},
@@ -798,7 +804,7 @@ func (c {{ .StructName }}) TypeName() query.TypeName {
 }
 
 // generates the Go Code for an event.Event.
-func generateEvent(ctx *GoProcessingContext, evt Spec) error {
+func generateEvent(ctx *GoProcessingContext, evt spec.Spec) error {
 	templateCode := `
 const {{ .StructName }}TypeName event.TypeName = "{{ .TypeName }}"
 
@@ -822,7 +828,7 @@ func (c {{ .StructName }}) TypeName() vent.TypeName {
 		StructName  string
 		TypeName    string
 		FilePath    string
-		Fields      map[string]EventField
+		Fields      map[string]builtin.EventField
 		Description string
 	}
 
@@ -831,7 +837,7 @@ func (c {{ .StructName }}) TypeName() vent.TypeName {
 		StructName:  evt.Annotations.GetOrDefault("gen:go:name", strcase.ToCamel(string(evt.TypeName))+"Event").(string),
 		Description: strings.ReplaceAll(strings.TrimSuffix(evt.Description, "\n"), "\n", "\n// "),
 		TypeName:    string(evt.TypeName),
-		Fields:      evt.Properties.(EventSpecProperties).Fields,
+		Fields:      evt.Properties.(builtin.EventSpecProperties).Fields,
 	}
 
 	//goland:noinspection GoRedundantConversion
@@ -843,7 +849,7 @@ func (c {{ .StructName }}) TypeName() vent.TypeName {
 		[]GoType{
 			{
 				TypeName:         string(templateData.StructName),
-				InternalTypeName: DataType(evt.TypeName),
+				InternalTypeName: typesystem.DataType(evt.TypeName),
 				ImportPath:       "",
 			},
 		},
@@ -856,8 +862,8 @@ func (c {{ .StructName }}) TypeName() vent.TypeName {
 }
 
 // generates the Go Code for an HTTP Endpoint.
-func generateHTTPEndpoint(ctx *GoProcessingContext, endpoint Spec) error {
-	props := endpoint.Properties.(HTTPEndpointSpecProperties)
+func generateHTTPEndpoint(ctx *GoProcessingContext, endpoint spec.Spec) error {
+	props := endpoint.Properties.(builtin.HTTPEndpointSpecProperties)
 
 	templateCode := `
 // {{ .EndpointFuncName }} {{ .Description }}
@@ -909,9 +915,9 @@ func {{ .EndpointFuncName }}(r chi.Router, bus {{ if eq .Method "POST" }}command
 		Description      string
 		Path             string
 		Method           string
-		Request          DataType
-		SuccessResponse  HTTPEndpointSuccessResponse
-		FailureResponses []HTTPEndpointFailureResponse
+		Request          typesystem.DataType
+		SuccessResponse  builtin.HTTPEndpointSuccessResponse
+		FailureResponses []builtin.HTTPEndpointFailureResponse
 	}
 
 	// Generate Go Code Snippet
@@ -936,7 +942,7 @@ func {{ .EndpointFuncName }}(r chi.Router, bus {{ if eq .Method "POST" }}command
 		[]GoType{
 			{
 				TypeName:         string(templateData.EndpointFuncName),
-				InternalTypeName: DataType(endpoint.TypeName),
+				InternalTypeName: typesystem.DataType(endpoint.TypeName),
 				ImportPath:       "",
 			},
 		},

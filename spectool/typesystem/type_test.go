@@ -1,4 +1,4 @@
-package spectool
+package typesystem
 
 import (
 	"reflect"
@@ -17,24 +17,29 @@ func TestFieldType_BaseType(t *testing.T) {
 			want: String,
 		},
 		{
+			name: "array of strings",
+			f:    "[]" + String,
+			want: String,
+		},
+		{
 			name: "array should return array",
 			f:    "[]Type",
-			want: Array,
+			want: "Type",
 		},
 		{
 			name: "map should return the type of values",
 			f:    "map[string]Type",
-			want: Map,
+			want: "Type",
 		},
 		{
 			name: "array of container should return array (the left-most type)",
 			f:    "[]map[string]Type",
-			want: Array,
+			want: "Type",
 		},
 		{
 			name: "map of container should return map (the left-most type)",
 			f:    "map[string][]Type",
-			want: "map",
+			want: "Type",
 		},
 	}
 	for _, tt := range tests {

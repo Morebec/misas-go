@@ -56,6 +56,9 @@ type CreateUserCommand struct {
 	// ID of the user
 	ID string `json:"id"`
 
+	// list of permissions
+	Permissions string `json:"permissions"`
+
 	// Registration of user
 	Registration RenameUserCommand `json:"registration"`
 }

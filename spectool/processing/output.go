@@ -1,4 +1,4 @@
-package spectool
+package processing
 
 // OutputFile represents a file the needs to be outputted.
 type OutputFile struct {

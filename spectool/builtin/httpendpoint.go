@@ -1,12 +1,15 @@
-package spectool
+package builtin
 
 import (
 	"fmt"
+	"github.com/morebec/misas-go/spectool/processing"
+	"github.com/morebec/misas-go/spectool/spec"
+	"github.com/morebec/misas-go/spectool/typesystem"
 	"github.com/pkg/errors"
 	"strings"
 )
 
-const HTTPEndpointType SpecType = "http_endpoint"
+const HTTPEndpointType spec.Type = "http_endpoint"
 
 type HTTPEndpointFailureResponse struct {
 	StatusCode  int    `yaml:"statusCode"`
@@ -20,7 +23,7 @@ type HTTPEndpointSuccessResponse struct {
 	Description string `yaml:"description"`
 	Example     string `yaml:"example"`
 	// The DataType returned by this response
-	Type DataType `yaml:"type"`
+	Type typesystem.DataType `yaml:"type"`
 }
 
 type HTTPEndpointResponses struct {
@@ -31,61 +34,61 @@ type HTTPEndpointResponses struct {
 type HTTPEndpointSpecProperties struct {
 	Path      string                `yaml:"path"`
 	Method    string                `yaml:"method"`
-	Request   DataType              `yaml:"request"`
+	Request   typesystem.DataType   `yaml:"request"`
 	Responses HTTPEndpointResponses `yaml:"responses"`
 }
 
 func (c HTTPEndpointSpecProperties) IsSpecProperties() {}
 
-func HTTPEndpointDeserializer() SpecDeserializer {
-	inner := NewTypePropertiesDeserializer[HTTPEndpointSpecProperties](HTTPEndpointType)
-	return NewTypeBasedDeserializer(HTTPEndpointType, func(source SpecSource) (Spec, error) {
-		spec, err := inner.Deserialize(source)
+func HTTPEndpointDeserializer() processing.SpecDeserializer {
+	inner := processing.NewTypePropertiesDeserializer[HTTPEndpointSpecProperties](HTTPEndpointType)
+	return processing.NewTypeBasedDeserializer(HTTPEndpointType, func(source spec.Source) (spec.Spec, error) {
+		s, err := inner.Deserialize(source)
 		if err != nil {
-			return Spec{}, err
+			return spec.Spec{}, err
 		}
 
-		properties := spec.Properties.(HTTPEndpointSpecProperties)
+		properties := s.Properties.(HTTPEndpointSpecProperties)
 		if properties.Request == "" {
-			properties.Request = Null
+			properties.Request = typesystem.Null
 		}
 
-		spec.Properties = properties
+		s.Properties = properties
 
-		return spec, nil
+		return s, nil
 	})
 }
 
-func HTTPEndpointDependencyProvider() DependencyProvider {
-	return func(systemSpec Spec, specs SpecGroup) ([]DependencyNode, error) {
+func HTTPEndpointDependencyProvider() processing.DependencyProvider {
+	return func(systemSpec spec.Spec, specs spec.Group) ([]processing.DependencyNode, error) {
 		endpoints := specs.SelectType(HTTPEndpointType)
 
-		var nodes []DependencyNode
+		var nodes []processing.DependencyNode
 
 		for _, ep := range endpoints {
 			props := ep.Properties.(HTTPEndpointSpecProperties)
-			var deps []SpecTypeName
+			var deps []spec.TypeName
 
 			requestType := props.Request.ExtractUserDefined()
 			if requestType != "" {
-				deps = append(deps, SpecTypeName(requestType))
+				deps = append(deps, spec.TypeName(requestType))
 			}
 
 			// success response
 			if props.Responses.Success.Type.IsUserDefined() {
-				deps = append(deps, SpecTypeName(props.Responses.Success.Type.ExtractUserDefined()))
+				deps = append(deps, spec.TypeName(props.Responses.Success.Type.ExtractUserDefined()))
 			}
-			nodes = append(nodes, NewDependencyNode(ep, deps...))
+			nodes = append(nodes, processing.NewDependencyNode(ep, deps...))
 		}
 
 		return nodes, nil
 	}
 }
 
-func HTTPEndpointsShouldFollowNamingConvention() Linter {
-	return func(system Spec, specs SpecGroup) (LintingWarnings, LintingErrors) {
+func HTTPEndpointsShouldFollowNamingConvention() processing.Linter {
+	return func(system spec.Spec, specs spec.Group) (processing.LintingWarnings, processing.LintingErrors) {
 		endpoints := specs.SelectType(HTTPEndpointType)
-		var lintingWarnings LintingWarnings
+		var lintingWarnings processing.LintingWarnings
 		for _, c := range endpoints {
 			if len(c.TypeName.Parts()) < 3 {
 				lintingWarnings = append(lintingWarnings, fmt.Sprintf("endpoint %s does not follow the module.aggregate.entity.action naming convention at %s", c.TypeName, c.Source.Location))
@@ -96,9 +99,9 @@ func HTTPEndpointsShouldFollowNamingConvention() Linter {
 	}
 }
 
-func HTTPEndpointPathsShouldStartWithForwardSlash() Linter {
-	return func(system Spec, specs SpecGroup) (LintingWarnings, LintingErrors) {
-		var lintingErrors LintingErrors
+func HTTPEndpointPathsShouldStartWithForwardSlash() processing.Linter {
+	return func(system spec.Spec, specs spec.Group) (processing.LintingWarnings, processing.LintingErrors) {
+		var lintingErrors processing.LintingErrors
 		endpoints := specs.SelectType(HTTPEndpointType)
 		for _, c := range endpoints {
 			if !strings.HasPrefix(c.Properties.(HTTPEndpointSpecProperties).Path, "/") {
@@ -109,9 +112,9 @@ func HTTPEndpointPathsShouldStartWithForwardSlash() Linter {
 	}
 }
 
-func HTTPEndpointPathsShouldNotEndWithForwardSlash() Linter {
-	return func(system Spec, specs SpecGroup) (LintingWarnings, LintingErrors) {
-		var lintingErrors LintingErrors
+func HTTPEndpointPathsShouldNotEndWithForwardSlash() processing.Linter {
+	return func(system spec.Spec, specs spec.Group) (processing.LintingWarnings, processing.LintingErrors) {
+		var lintingErrors processing.LintingErrors
 		endpoints := specs.SelectType(HTTPEndpointType)
 		for _, c := range endpoints {
 			if strings.HasSuffix(c.Properties.(HTTPEndpointSpecProperties).Path, "/") {
@@ -122,23 +125,23 @@ func HTTPEndpointPathsShouldNotEndWithForwardSlash() Linter {
 	}
 }
 
-func HTTPEndpointPathsShouldBeUnique() Linter {
-	return func(system Spec, specs SpecGroup) (LintingWarnings, LintingErrors) {
-		var lintingErrors LintingErrors
+func HTTPEndpointPathsShouldBeUnique() processing.Linter {
+	return func(system spec.Spec, specs spec.Group) (processing.LintingWarnings, processing.LintingErrors) {
+		var lintingErrors processing.LintingErrors
 		endpoints := specs.SelectType(HTTPEndpointType)
 
-		endpointPaths := map[string]SpecGroup{}
+		endpointPaths := map[string]spec.Group{}
 		for _, ep := range endpoints {
 			properties := ep.Properties.(HTTPEndpointSpecProperties)
 			if _, found := endpointPaths[properties.Path]; found {
-				endpointPaths[properties.Path] = SpecGroup{}
+				endpointPaths[properties.Path] = spec.Group{}
 			}
 			endpointPaths[properties.Path] = append(endpointPaths[properties.Path], ep)
 		}
 
 		for p, v := range endpointPaths {
 			if len(v) > 1 {
-				specsWithPath := MapSpecGroup[string](v, func(s Spec) string { return fmt.Sprintf("%s at %s", string(s.TypeName), s.Source.Location) })
+				specsWithPath := spec.MapSpecGroup[string](v, func(s spec.Spec) string { return fmt.Sprintf("%s at %s", string(s.TypeName), s.Source.Location) })
 				lintingErrors = append(lintingErrors, errors.Errorf("duplicate endpoint paths found for %s in %s", p, strings.Join(specsWithPath, ", ")))
 			}
 		}
@@ -147,9 +150,9 @@ func HTTPEndpointPathsShouldBeUnique() Linter {
 	}
 }
 
-func HTTPEndpointPathShouldBeLowercase() Linter {
-	return func(system Spec, specs SpecGroup) (LintingWarnings, LintingErrors) {
-		var lintingErrors LintingErrors
+func HTTPEndpointPathShouldBeLowercase() processing.Linter {
+	return func(system spec.Spec, specs spec.Group) (processing.LintingWarnings, processing.LintingErrors) {
+		var lintingErrors processing.LintingErrors
 		endpoints := specs.SelectType(HTTPEndpointType)
 
 		for _, ep := range endpoints {
@@ -162,9 +165,9 @@ func HTTPEndpointPathShouldBeLowercase() Linter {
 	}
 }
 
-func HTTPEndpointsShouldHaveEitherGETorPOSTMethod() Linter {
-	return func(system Spec, specs SpecGroup) (LintingWarnings, LintingErrors) {
-		var LintingWarnings LintingWarnings
+func HTTPEndpointsShouldHaveEitherGETorPOSTMethod() processing.Linter {
+	return func(system spec.Spec, specs spec.Group) (processing.LintingWarnings, processing.LintingErrors) {
+		var LintingWarnings processing.LintingWarnings
 		endpoints := specs.SelectType(HTTPEndpointType)
 
 		for _, ep := range endpoints {
@@ -182,9 +185,9 @@ func HTTPEndpointsShouldHaveEitherGETorPOSTMethod() Linter {
 	}
 }
 
-func HTTPEndpointResponseShouldHaveValidStatusCode() Linter {
-	return func(system Spec, specs SpecGroup) (LintingWarnings, LintingErrors) {
-		var LintingWarnings LintingWarnings
+func HTTPEndpointResponseShouldHaveValidStatusCode() processing.Linter {
+	return func(system spec.Spec, specs spec.Group) (processing.LintingWarnings, processing.LintingErrors) {
+		var LintingWarnings processing.LintingWarnings
 		endpoints := specs.SelectType(HTTPEndpointType)
 
 		for _, ep := range endpoints {
@@ -213,9 +216,9 @@ func HTTPEndpointResponseShouldHaveValidStatusCode() Linter {
 	}
 }
 
-func HTTPEndpointsWithCommandRequestTypeMustHaveMethodPOST() Linter {
-	return func(system Spec, specs SpecGroup) (LintingWarnings, LintingErrors) {
-		var lintingErrors LintingErrors
+func HTTPEndpointsWithCommandRequestTypeMustHaveMethodPOST() processing.Linter {
+	return func(system spec.Spec, specs spec.Group) (processing.LintingWarnings, processing.LintingErrors) {
+		var lintingErrors processing.LintingErrors
 		endpoints := specs.SelectType(HTTPEndpointType)
 
 		for _, ep := range endpoints {
@@ -224,7 +227,7 @@ func HTTPEndpointsWithCommandRequestTypeMustHaveMethodPOST() Linter {
 			if requestTypeUserDef == "" {
 				continue
 			}
-			reqTypeName := SpecTypeName(requestTypeUserDef)
+			reqTypeName := spec.TypeName(requestTypeUserDef)
 			req := specs.SelectTypeName(reqTypeName)
 
 			if req.TypeName == reqTypeName {
@@ -247,9 +250,9 @@ func HTTPEndpointsWithCommandRequestTypeMustHaveMethodPOST() Linter {
 	}
 }
 
-func HTTPEndpointsWithQueryRequestTypeMustHaveMethodGET() Linter {
-	return func(system Spec, specs SpecGroup) (LintingWarnings, LintingErrors) {
-		var lintingErrors LintingErrors
+func HTTPEndpointsWithQueryRequestTypeMustHaveMethodGET() processing.Linter {
+	return func(system spec.Spec, specs spec.Group) (processing.LintingWarnings, processing.LintingErrors) {
+		var lintingErrors processing.LintingErrors
 		endpoints := specs.SelectType(HTTPEndpointType)
 
 		for _, ep := range endpoints {
@@ -258,7 +261,7 @@ func HTTPEndpointsWithQueryRequestTypeMustHaveMethodGET() Linter {
 			if requestTypeUserDef == "" {
 				continue
 			}
-			reqTypeName := SpecTypeName(requestTypeUserDef)
+			reqTypeName := spec.TypeName(requestTypeUserDef)
 			req := specs.SelectTypeName(reqTypeName)
 
 			if req.TypeName == reqTypeName {
