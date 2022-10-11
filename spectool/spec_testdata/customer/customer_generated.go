@@ -6,6 +6,19 @@ import (
 	"time"
 )
 
+const RegisterCustomerCommandTypeName command.TypeName = "customer.register"
+
+// RegisterCustomerCommand Registers a Customer
+type RegisterCustomerCommand struct {
+
+	// ID of the customer that was registered. This identifier is mapped to the customer's user account ID.
+	CustomerId string `json:"customerId"`
+}
+
+func (c RegisterCustomerCommand) TypeName() command.TypeName {
+	return RegisterCustomerCommandTypeName
+}
+
 const CustomerRegisteredEventTypeName event.TypeName = "customer.registered"
 
 // CustomerRegisteredEvent Records the fact that a customer was registered with the billing module.
@@ -20,17 +33,4 @@ type CustomerRegisteredEvent struct {
 
 func (c CustomerRegisteredEvent) TypeName() vent.TypeName {
 	return CustomerRegisteredEventTypeName
-}
-
-const RegisterCustomerCommandTypeName command.TypeName = "customer.register"
-
-// RegisterCustomerCommand Registers a Customer
-type RegisterCustomerCommand struct {
-
-	// ID of the customer that was registered. This identifier is mapped to the customer's user account ID.
-	CustomerId string `json:"customerId"`
-}
-
-func (c RegisterCustomerCommand) TypeName() command.TypeName {
-	return RegisterCustomerCommandTypeName
 }

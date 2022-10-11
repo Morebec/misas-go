@@ -2,63 +2,15 @@ package spectool
 
 import (
 	"context"
+	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
 func TestSpectool(t *testing.T) {
-	err := Spectool(
-		context.Background(),
-		"./spec_testdata/system.spec.yaml",
-		LoadSpecs(
-			SystemSpecDeserializer(),
-			CommandDeserializer(),
-			QueryDeserializer(),
-			EventDeserializer(),
-			StructDeserializer(),
-			EnumDeserializer(),
-			HTTPEndpointDeserializer(),
-		),
-		LintSpecs(
-			// Common
-			SpecificationsMustNotHaveUndefinedTypes(),
-			SpecificationMustNotHaveUndefinedTypeNames(),
-			SpecificationsMustNotHaveDuplicateTypeNames(),
-			SpecificationsMustHaveDescriptions(),
-			SpecificationsMustHaveLowerCaseTypeNames(),
-			SpecificationsShouldFollowNamingConvention(),
-			// Structs
-			// Enums
-			EnumBaseTypeShouldBeSupportedEnumBaseType(),
-
-			// Commands
-			// Queries
-			// Events
-			EventsMustHaveDateTimeField(),
-
-			// HTTP Endpoints
-			HTTPEndpointsShouldFollowNamingConvention(),
-			HTTPEndpointPathsShouldStartWithForwardSlash(),
-			HTTPEndpointPathsShouldNotEndWithForwardSlash(),
-			HTTPEndpointPathsShouldBeUnique(),
-			HTTPEndpointPathShouldBeLowercase(),
-			HTTPEndpointsShouldHaveEitherGETorPOSTMethod(),
-			HTTPEndpointsWithCommandRequestTypeMustHaveMethodPOST(),
-			HTTPEndpointsWithQueryRequestTypeMustHaveMethodGET(),
-			HTTPEndpointResponseShouldHaveValidStatusCode(),
-		),
-		ResolveDependencies(
-			SystemDependencyProvider(),
-			CommandDependencyProvider(),
-			QueryDependencyProvider(),
-			EventDependencyProvider(),
-			StructDependencyProvider(),
-			EnumDependencyProvider(),
-			HTTPEndpointDependencyProvider(),
-		),
-		GoProcessor(),
-		WriteOutputFiles(),
-	)
+	specTool := Default("./spec_testdata/system.spec.yaml")
+	err := specTool(context.Background())
 	if err != nil {
 		panic(err)
 	}
+	assert.NoError(t, err)
 }

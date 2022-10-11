@@ -55,7 +55,7 @@ func (c *ProcessingContext) AddOutputFile(file OutputFile) {
 	c.OutputFiles = append(c.OutputFiles, file)
 }
 
-func Spectool(ctx context.Context, systemSpecFile string, steps ...Step[*ProcessingContext]) error {
+func Run(ctx context.Context, systemSpecFile string, steps ...Step[*ProcessingContext]) error {
 	config := zap.NewDevelopmentConfig()
 	config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	config.DisableStacktrace = true
@@ -218,5 +218,68 @@ func WriteOutputFiles() Step[*ProcessingContext] {
 		ctx.Logger.Info("Output files written successfully.")
 
 		return nil
+	}
+}
+
+func Default(systemSpecFile string) func(ctx context.Context) error {
+	return func(ctx context.Context) error {
+		return Run(
+			ctx,
+			systemSpecFile,
+			LoadSpecs(
+				SystemSpecDeserializer(),
+				CommandDeserializer(),
+				QueryDeserializer(),
+				EventDeserializer(),
+				StructDeserializer(),
+				EnumDeserializer(),
+				HTTPEndpointDeserializer(),
+			),
+			LintSpecs(
+				// Common
+				SpecificationsMustNotHaveUndefinedTypes(),
+				SpecificationMustNotHaveUndefinedTypeNames(),
+				SpecificationsMustNotHaveDuplicateTypeNames(),
+				SpecificationsMustHaveDescriptions(),
+				SpecificationsMustHaveLowerCaseTypeNames(),
+				SpecificationsShouldFollowNamingConvention(),
+				// Structs
+				// Enums
+				EnumBaseTypeShouldBeSupportedEnumBaseType(),
+
+				// Commands
+				CommandFieldsMustHaveNameLinter(),
+				CommandFieldsShouldHaveDescriptionLinter(),
+				// Queries
+				QueryFieldsMustHaveNameLinter(),
+				QueryFieldsShouldHaveDescriptionLinter(),
+				// Events
+				EventFieldsMustHaveNameLinter(),
+				EventFieldsShouldHaveDescriptionLinter(),
+				EventsMustHaveDateTimeField(),
+
+				// HTTP Endpoints
+				HTTPEndpointsShouldFollowNamingConvention(),
+				HTTPEndpointPathsShouldStartWithForwardSlash(),
+				HTTPEndpointPathsShouldNotEndWithForwardSlash(),
+				HTTPEndpointPathsShouldBeUnique(),
+				HTTPEndpointPathShouldBeLowercase(),
+				HTTPEndpointsShouldHaveEitherGETorPOSTMethod(),
+				HTTPEndpointsWithCommandRequestTypeMustHaveMethodPOST(),
+				HTTPEndpointsWithQueryRequestTypeMustHaveMethodGET(),
+				HTTPEndpointResponseShouldHaveValidStatusCode(),
+			),
+			ResolveDependencies(
+				SystemDependencyProvider(),
+				CommandDependencyProvider(),
+				QueryDependencyProvider(),
+				EventDependencyProvider(),
+				StructDependencyProvider(),
+				EnumDependencyProvider(),
+				HTTPEndpointDependencyProvider(),
+			),
+			GoProcessor(),
+			WriteOutputFiles(),
+		)
 	}
 }

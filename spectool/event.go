@@ -1,6 +1,7 @@
 package spectool
 
 import (
+	"fmt"
 	"github.com/pkg/errors"
 )
 
@@ -83,5 +84,35 @@ func EventsMustHaveDateTimeField() Linter {
 		}
 
 		return nil, lintingErrors
+	}
+}
+
+func EventFieldsMustHaveNameLinter() Linter {
+	return func(system Spec, specs SpecGroup) (LintingWarnings, LintingErrors) {
+		var errs LintingErrors
+		for _, s := range specs.SelectType(EventType) {
+			props := s.Properties.(EventSpecProperties)
+			for i, f := range props.Fields {
+				if f.Description == "" {
+					errs = append(errs, errors.Errorf("field [%s] of event %s does not have a name", i, f.Description))
+				}
+			}
+		}
+		return nil, errs
+	}
+}
+
+func EventFieldsShouldHaveDescriptionLinter() Linter {
+	return func(system Spec, specs SpecGroup) (LintingWarnings, LintingErrors) {
+		var warning LintingWarnings
+		for _, s := range specs.SelectType(EventType) {
+			props := s.Properties.(EventSpecProperties)
+			for _, f := range props.Fields {
+				if f.Description == "" {
+					warning = append(warning, fmt.Sprintf("field %s of event %s does not have a description", f.Name, f.Description))
+				}
+			}
+		}
+		return warning, nil
 	}
 }

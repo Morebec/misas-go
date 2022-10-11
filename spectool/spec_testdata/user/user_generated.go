@@ -27,7 +27,7 @@ func httpUserCreate(r chi.Router, bus command.Bus) {
 		err := json.NewDecoder(r.Body).Decode(&input)
 		if err != nil {
 			w.WriteHeader(500)
-			render.JSON(w, r, api.NewInternalError(err))
+			render.JSON(w, r, httpapi.NewInternalError(err))
 			return
 		}
 
@@ -35,11 +35,11 @@ func httpUserCreate(r chi.Router, bus command.Bus) {
 		output, err := bus.Send(r.Context(), input)
 		if err != nil {
 			w.WriteHeader(400)
-			render.JSON(w, r, api.NewErrorResponse(output))
+			render.JSON(w, r, httpapi.NewErrorResponse(output))
 			return
 		}
 
-		render.JSON(w, r, api.NewSuccessResponse(output))
+		render.JSON(w, r, httpapi.NewSuccessResponse(output))
 	})
 }
 
