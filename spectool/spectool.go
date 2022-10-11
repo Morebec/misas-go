@@ -235,7 +235,7 @@ func Default(systemSpecFile string) func(ctx context.Context) error {
 				EnumDeserializer(),
 				HTTPEndpointDeserializer(),
 			),
-			
+
 			LintSpecs(
 				// Common
 				SpecificationsMustNotHaveUndefinedTypes(),
@@ -247,20 +247,18 @@ func Default(systemSpecFile string) func(ctx context.Context) error {
 				SpecificationsShouldFollowNamingConvention(),
 
 				// Structs
-				StructFieldsMustHaveNameLinter(),
 				StructFieldsShouldHaveDescriptionLinter(),
 
 				// Enums
 				EnumBaseTypeShouldBeSupportedEnumBaseType(),
 
 				// Commands
-				CommandFieldsMustHaveNameLinter(),
 				CommandFieldsShouldHaveDescriptionLinter(),
+
 				// Queries
-				QueryFieldsMustHaveNameLinter(),
 				QueryFieldsShouldHaveDescriptionLinter(),
+				
 				// Events
-				EventFieldsMustHaveNameLinter(),
 				EventFieldsShouldHaveDescriptionLinter(),
 				EventsMustHaveDateTimeField(),
 

@@ -2,7 +2,6 @@ package spectool
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 )
 
 const CommandType SpecType = "command"
@@ -64,21 +63,6 @@ func CommandDependencyProvider() DependencyProvider {
 		}
 
 		return nodes, nil
-	}
-}
-
-func CommandFieldsMustHaveNameLinter() Linter {
-	return func(system Spec, specs SpecGroup) (LintingWarnings, LintingErrors) {
-		var errs LintingErrors
-		for _, s := range specs.SelectType(CommandType) {
-			props := s.Properties.(CommandSpecProperties)
-			for i, f := range props.Fields {
-				if f.Description == "" {
-					errs = append(errs, errors.Errorf("field [%s] of command %s does not have a name", i, s.TypeName))
-				}
-			}
-		}
-		return nil, errs
 	}
 }
 
