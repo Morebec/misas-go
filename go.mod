@@ -1,4 +1,4 @@
-module github.com/jwillp/go-system
+module github.com/morebec/go-system
 
 go 1.18
 
