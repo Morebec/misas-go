@@ -235,6 +235,7 @@ func Default(systemSpecFile string) func(ctx context.Context) error {
 				EnumDeserializer(),
 				HTTPEndpointDeserializer(),
 			),
+			
 			LintSpecs(
 				// Common
 				SpecificationsMustNotHaveUndefinedTypes(),
@@ -242,8 +243,13 @@ func Default(systemSpecFile string) func(ctx context.Context) error {
 				SpecificationsMustNotHaveDuplicateTypeNames(),
 				SpecificationsMustHaveDescriptions(),
 				SpecificationsMustHaveLowerCaseTypeNames(),
+
 				SpecificationsShouldFollowNamingConvention(),
+
 				// Structs
+				StructFieldsMustHaveNameLinter(),
+				StructFieldsShouldHaveDescriptionLinter(),
+
 				// Enums
 				EnumBaseTypeShouldBeSupportedEnumBaseType(),
 
@@ -269,6 +275,7 @@ func Default(systemSpecFile string) func(ctx context.Context) error {
 				HTTPEndpointsWithQueryRequestTypeMustHaveMethodGET(),
 				HTTPEndpointResponseShouldHaveValidStatusCode(),
 			),
+
 			ResolveDependencies(
 				SystemDependencyProvider(),
 				CommandDependencyProvider(),
@@ -278,7 +285,9 @@ func Default(systemSpecFile string) func(ctx context.Context) error {
 				EnumDependencyProvider(),
 				HTTPEndpointDependencyProvider(),
 			),
+
 			GoProcessor(),
+
 			WriteOutputFiles(),
 		)
 	}

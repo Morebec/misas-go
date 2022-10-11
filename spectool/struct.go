@@ -1,5 +1,10 @@
 package spectool
 
+import (
+	"fmt"
+	"github.com/pkg/errors"
+)
+
 const StructType SpecType = "struct"
 
 type StructField struct {
@@ -59,5 +64,35 @@ func StructDependencyProvider() DependencyProvider {
 		}
 
 		return nodes, nil
+	}
+}
+
+func StructFieldsMustHaveNameLinter() Linter {
+	return func(system Spec, specs SpecGroup) (LintingWarnings, LintingErrors) {
+		var errs LintingErrors
+		for _, s := range specs.SelectType(StructType) {
+			props := s.Properties.(StructSpecProperties)
+			for i, f := range props.Fields {
+				if f.Description == "" {
+					errs = append(errs, errors.Errorf("field [%s] of struct %s does not have a name", i, f.Description))
+				}
+			}
+		}
+		return nil, errs
+	}
+}
+
+func StructFieldsShouldHaveDescriptionLinter() Linter {
+	return func(system Spec, specs SpecGroup) (LintingWarnings, LintingErrors) {
+		var warning LintingWarnings
+		for _, s := range specs.SelectType(StructType) {
+			props := s.Properties.(StructSpecProperties)
+			for _, f := range props.Fields {
+				if f.Description == "" {
+					warning = append(warning, fmt.Sprintf("field %s of struct %s does not have a description", f.Name, f.Description))
+				}
+			}
+		}
+		return warning, nil
 	}
 }
