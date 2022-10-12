@@ -834,7 +834,7 @@ type {{ .StructName }} struct {
 	{{ end }}
 }
 
-func (c {{ .StructName }}) TypeName() vent.TypeName {
+func (c {{ .StructName }}) TypeName() event.TypeName {
 	return {{ .StructName }}TypeName
 }
 `
