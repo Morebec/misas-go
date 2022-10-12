@@ -49,10 +49,10 @@ func (b *OpenTelemetryEventBusDecorator) Send(ctx context.Context, e event.Event
 
 func (b *OpenTelemetryEventBusDecorator) RegisterHandler(t event.TypeName, h event.Handler) {
 	b.Bus.RegisterHandler(t, func() event.HandlerFunc {
-		return func(e event.Event, ctx context.Context) error {
+		return func(ctx context.Context, e event.Event) error {
 			ctx, span := b.Tracer.Start(ctx, fmt.Sprintf("%s.%s", t, typeAsString(h)))
 			defer span.End()
-			if err := h.Handle(e, ctx); err != nil {
+			if err := h.Handle(ctx, e); err != nil {
 				span.RecordError(err)
 				return err
 			}

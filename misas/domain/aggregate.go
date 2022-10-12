@@ -114,7 +114,8 @@ func (r EventStoreRepository[T]) Update(ctx context.Context, streamId store.Stre
 func (r EventStoreRepository[T]) Load(ctx context.Context, id store.StreamID) (T, Version, error) {
 	stream, err := r.eventStore.ReadFromStream(ctx, id, store.FromStart(), store.InForwardDirection())
 	if err != nil {
-		return nil, 0, errors.Wrapf(err, "failed loading aggregate from stream \"%s\"", id)
+		var out T
+		return out, 0, errors.Wrapf(err, "failed loading aggregate from stream \"%s\"", id)
 	}
 
 	var aggregate T
@@ -123,7 +124,8 @@ func (r EventStoreRepository[T]) Load(ctx context.Context, id store.StreamID) (T
 	for _, d := range stream.Descriptors {
 		e, err := r.eventConverter.FromRecordedEventDescriptor(d)
 		if err != nil {
-			return nil, 0, errors.Wrapf(err, "failed loading aggregate from stream \"%s\"", id)
+			var out T
+			return out, 0, errors.Wrapf(err, "failed loading aggregate from stream \"%s\"", id)
 		}
 		aggregate.ApplyEvent(e)
 		version = version.Incremented()

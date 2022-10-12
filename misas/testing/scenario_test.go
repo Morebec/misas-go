@@ -42,7 +42,7 @@ func (a accountCreated) TypeName() event.TypeName {
 
 func TestScenario(t *testing.T) {
 	aClock := clock.NewFixedClock(time.Now())
-	serv := system.New(
+	sys := system.New(
 		system.WithSubsystems(
 			func(m *system.Subsystem) {
 				// m.RegisterEventHandler().Handles(accountCreated{})
@@ -68,7 +68,7 @@ func TestScenario(t *testing.T) {
 		),
 	)
 	s := NewScenario(
-		UsingService(serv),
+		UsingService(sys),
 		Given(
 			CurrentDateIs(aClock.Now()),
 		),

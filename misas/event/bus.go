@@ -31,7 +31,7 @@ func (eb *InMemoryBus) Send(ctx context.Context, e Event) error {
 	handlers := eb.resolveHandlers(e)
 
 	for _, h := range handlers {
-		if err := h.Handle(e, ctx); err != nil {
+		if err := h.Handle(ctx, e); err != nil {
 			return errors.Wrapf(err, "failed handling event \"%s\"", e.TypeName())
 		}
 	}

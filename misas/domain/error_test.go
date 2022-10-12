@@ -239,7 +239,7 @@ func TestIsNotFoundDomainError(t *testing.T) {
 				err: NewError(
 					WithTypeName("unit_test_error"),
 					WithMessage("there was an error in the unit test"),
-					WithTagNotFound(),
+					WithTag(NotFoundTag),
 				),
 			},
 			want: true,

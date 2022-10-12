@@ -2,14 +2,6 @@
 
 package user
 
-import (
-	"encoding/json"
-	"github.com/morebec/misas-go/misas/command"
-	"github.com/morebec/misas-go/misas/domain"
-	"github.com/morebec/misas-go/misas/httpapi"
-	"net/http"
-)
-
 // httpUserCreate Allows creating a user
 func httpUserCreate(r chi.Router, bus command.Bus) {
 	r.Get("/user/create", func(w http.ResponseWriter, r *http.Request) {

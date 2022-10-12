@@ -9,7 +9,7 @@ import (
 func TestInMemoryBus_RegisterHandler(t *testing.T) {
 	b := NewInMemoryBus()
 
-	b.RegisterHandler(unitTestSucceededTypeName, HandlerFunc(func(e Event, ctx context.Context) error {
+	b.RegisterHandler(unitTestSucceededTypeName, HandlerFunc(func(ctx context.Context, e Event) error {
 		return nil
 	}))
 }
@@ -18,7 +18,7 @@ func TestInMemoryBus_Send(t *testing.T) {
 	b := NewInMemoryBus()
 
 	sent := false
-	b.RegisterHandler(unitTestFailedTypeName, HandlerFunc(func(e Event, ctx context.Context) error {
+	b.RegisterHandler(unitTestFailedTypeName, HandlerFunc(func(ctx context.Context, e Event) error {
 		sent = true
 		return nil
 	}))
