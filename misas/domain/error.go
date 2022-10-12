@@ -38,6 +38,7 @@ func IsDomainErrorWithTypeName(err error, t ErrorTypeName) bool {
 
 const NotFoundTag = "not_found"
 const ValidationErrorTag = "validation_error"
+const AlreadyExistsTag = "already_exists"
 
 func IsNotFoundDomainError(err error) bool {
 	if !IsDomainError(err) {
