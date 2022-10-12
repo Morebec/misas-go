@@ -110,7 +110,7 @@ func ExactlyTheseEvents(expectedEvents ...event.Event) HasRecordedOption {
 		stage.addStep(NewStep("ExpectTheseEvents", func(t assert.TestingT, scenario *Scenario, stage *Stage) error {
 			actualEvents := scenario.Execution.RecordedEventsByStreamId(id)
 			if !assert.Equal(t, len(expectedEvents), len(actualEvents)) {
-				return fmt.Errorf("%d events recorded, when %d expected in stream %s", len(expectedEvents), len(actualEvents), id)
+				return fmt.Errorf("%d events recorded, when %d expected in stream %s", len(actualEvents), len(expectedEvents), id)
 			}
 
 			for _, expectedEvent := range expectedEvents {
