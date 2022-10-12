@@ -379,6 +379,12 @@ func GenerateSnippet(ctx *GoSnippetGenerationContext) (GoSnippet, error) {
 			if value == "id" {
 				return "ID"
 			}
+
+			if strings.HasSuffix(value, "Id") {
+				value = strings.TrimSuffix(value, "Id")
+				value = value + "ID"
+			}
+
 			return strcase.ToCamel(value)
 		},
 
