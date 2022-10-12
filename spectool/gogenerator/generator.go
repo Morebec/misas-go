@@ -447,6 +447,8 @@ func ResolveGoType(ctx *GoSnippetGenerationContext, t typesystem.DataType) (GoTy
 			return NewGoType("time.Time", typesystem.Date, "time"), nil
 		case typesystem.DateTime:
 			return NewGoType("time.Time", typesystem.DateTime, "time"), nil
+		case typesystem.Duration:
+			return NewGoType("time.Duration", typesystem.Duration, "time"), nil
 		case typesystem.Char:
 			return NewGoType("rune", typesystem.Char, ""), nil
 		}

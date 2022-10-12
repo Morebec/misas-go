@@ -18,6 +18,7 @@ const (
 	Float      DataType = "float"
 	Date       DataType = "date"
 	DateTime   DataType = "dateTime"
+	Duration   DataType = "duration"
 	Char       DataType = "char"
 	Array      DataType = "array"
 	Map        DataType = "map"
@@ -33,6 +34,7 @@ func BuiltInDataTypes() []DataType {
 		Float,
 		Date,
 		DateTime,
+		Duration,
 		Char,
 
 		// Containers
