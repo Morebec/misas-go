@@ -30,60 +30,60 @@ of the core units withing the system:
 
 	s := system.New(
 		// These information are reused in logs, tracing spans or as metadata for events.
-		WithInformation(Information{
+		system.WithInformation(system.Information{
 			Name:    "unit_test",
 			Version: "1.0.0",
 		}),
-		WithEnvironment(system.Test),
-		WithClock(utcClock),
+		system.WithEnvironment(system.Test),
+		system.WithClock(utcClock),
 
-		WithCommandHandling(
-			WithCommandBus(
+		system.WithCommandHandling(
+			system.WithCommandBus(
 				command.NewInMemoryBus(),
 			),
 		),
 
-		WithQueryHandling(
-			WithQueryBus(
+		system.WithQueryHandling(
+			system.WithQueryBus(
 				query.NewInMemoryBus(),
 			),
 		),
 
-		WithEventHandling(
-			WithEventBus(
+		system.WithEventHandling(
+			system.WithEventBus(
 				event.NewInMemoryBus(),
 			),
-			WithEventStore(
-				postgresql.NewEventStore(utcClock),
+			system.WithEventStore(
+				postgresql.NewEventStore("connectionString", utcClock),
 			),
 		),
 
-		WithPredictionHandling(
-			WithPredictionBus(
+		system.WithPredictionHandling(
+			system.WithPredictionBus(
 				prediction.NewInMemoryBus(),
 			),
-			WithPredictionStore(
+			system.WithPredictionStore(
 				postgresql.NewPredictionStore(),
 			),
 		),
 
-		WithInstrumentation(
-			WithTracer(instrumentation.NewSystemTracer()),
-			WithDefaultLogger(),
-			WithJaegerTracingSpanExporter("urlToJaeggerInstance"),
-			WithCommandBusInstrumentation(), // Decorates the command bus adding automated instrumentation.
-			WithQueryBusInstrumentation(), // Decorates the query bus adding automated instrumentation.
-			WithEventBusInstrumentation(), // Decorates the event bus adding automated instrumentation.
-			WithPredictionBusInstrumentation(), // Decorates the prediction bus adding automated instrumentation.
-			WithEventStoreInstrumentation(), // Decorates the event store adding automated instrumentation.
+		system.WithInstrumentation(
+			system.WithTracer(instrumentation.NewSystemTracer()),
+			system.WithDefaultLogger(),
+			system.WithJaegerTracingSpanExporter("urlToJaeggerInstance"),
+			system.WithCommandBusInstrumentation(), // Decorates the command bus adding automated instrumentation.
+			system.WithQueryBusInstrumentation(), // Decorates the query bus adding automated instrumentation.
+			system.WithEventBusInstrumentation(), // Decorates the event bus adding automated instrumentation.
+			system.WithPredictionBusInstrumentation(), // Decorates the prediction bus adding automated instrumentation.
+			system.WithEventStoreInstrumentation(), // Decorates the event store adding automated instrumentation.
 		),
 
 		// Modules allow separating the dependencies of the systems.
-		WithSubsystem(
+		system.WithSubsystems(
 			func(s *system.Subsystem) {
 				// Registers
-				m.RegisterEvent(accountCreated{})
-				m.RegisterCommand(createAccount{}, createAccountCommandHandler))
+				s.RegisterEvent(accountCreated{})
+				s.RegisterCommandHandler(createAccount{}, createAccountCommandHandler))
 			}, 
 		),
 	)
