@@ -5,6 +5,7 @@ import (
 	"github.com/morebec/misas-go/spectool/processing"
 	"github.com/morebec/misas-go/spectool/spec"
 	"github.com/morebec/misas-go/spectool/typesystem"
+	"github.com/pkg/errors"
 )
 
 const QueryType spec.Type = "query"
@@ -66,6 +67,21 @@ func QueryDependencyProvider() processing.DependencyProvider {
 		}
 
 		return nodes, nil
+	}
+}
+
+func QueryFieldsMustHaveTypeLinter() processing.Linter {
+	return func(system spec.Spec, specs spec.Group) (processing.LintingWarnings, processing.LintingErrors) {
+		var errs processing.LintingErrors
+		for _, s := range specs.SelectType(QueryType) {
+			props := s.Properties.(QuerySpecProperties)
+			for _, f := range props.Fields {
+				if f.Type == "" {
+					errs = append(errs, errors.Errorf("field %s of query %s does not have a type", f.Name, s.TypeName))
+				}
+			}
+		}
+		return nil, errs
 	}
 }
 

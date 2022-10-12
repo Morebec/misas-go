@@ -207,18 +207,22 @@ func Default(systemSpecFile string) func(ctx context.Context) error {
 				processing.SpecificationsShouldFollowNamingConvention(),
 
 				// Structs
+				builtin.StructFieldsMustHaveTypeLinter(),
 				builtin.StructFieldsShouldHaveDescriptionLinter(),
 
 				// Enums
 				builtin.EnumBaseTypeShouldBeSupportedEnumBaseType(),
 
 				// Commands
+				builtin.CommandFieldsMustHaveTypeLinter(),
 				builtin.CommandFieldsShouldHaveDescriptionLinter(),
 
 				// Queries
+				builtin.QueryFieldsMustHaveTypeLinter(),
 				builtin.QueryFieldsShouldHaveDescriptionLinter(),
 
 				// Events
+				builtin.EventFieldsMustHaveTypeLinter(),
 				builtin.EventFieldsShouldHaveDescriptionLinter(),
 				builtin.EventsMustHaveDateTimeField(),
 

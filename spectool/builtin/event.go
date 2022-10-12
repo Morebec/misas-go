@@ -90,6 +90,21 @@ func EventsMustHaveDateTimeField() processing.Linter {
 	}
 }
 
+func EventFieldsMustHaveTypeLinter() processing.Linter {
+	return func(system spec.Spec, specs spec.Group) (processing.LintingWarnings, processing.LintingErrors) {
+		var errs processing.LintingErrors
+		for _, s := range specs.SelectType(EventType) {
+			props := s.Properties.(EventSpecProperties)
+			for _, f := range props.Fields {
+				if f.Type == "" {
+					errs = append(errs, errors.Errorf("field %s of event %s does not have a type", f.Name, s.TypeName))
+				}
+			}
+		}
+		return nil, errs
+	}
+}
+
 func EventFieldsShouldHaveDescriptionLinter() processing.Linter {
 	return func(system spec.Spec, specs spec.Group) (processing.LintingWarnings, processing.LintingErrors) {
 		var warning processing.LintingWarnings

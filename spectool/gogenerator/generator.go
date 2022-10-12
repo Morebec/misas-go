@@ -753,7 +753,7 @@ func (c {{ .StructName }}) TypeName() command.TypeName {
 			},
 		},
 		[]string{
-			"github.com/morebec/misas-go/misas/query",
+			"github.com/morebec/misas-go/misas/command",
 		},
 	)
 

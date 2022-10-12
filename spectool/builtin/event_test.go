@@ -33,3 +33,31 @@ func TestEventFieldsShouldHaveDescriptionLinter(t *testing.T) {
 
 	assert.NotEmpty(t, warnings)
 }
+
+func TestEventFieldsMustHaveTypeLinter(t *testing.T) {
+	_, errs := EventFieldsMustHaveTypeLinter()(spec.Spec{}, spec.Group{
+		spec.Spec{
+			Type:        EventType,
+			TypeName:    "",
+			Description: "",
+			Annotations: nil,
+			Version:     "",
+			Source:      spec.Source{},
+			Properties: EventSpecProperties{
+				map[string]EventField{
+					"field": {
+						Name:        "",
+						Description: "",
+						Type:        "",
+						Nullable:    false,
+						Deprecation: "",
+						Example:     "",
+						Annotations: nil,
+					},
+				},
+			},
+		},
+	})
+
+	assert.NotEmpty(t, errs)
+}
