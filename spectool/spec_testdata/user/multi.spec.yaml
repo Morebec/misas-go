@@ -2,13 +2,21 @@ version: 1.0.0
 type: multi
 typeName: http.user.create
 specs:
+  request:
+    type: struct
+    typeName: http.user.create.request
+    description: "request of http.user.create endpoint"
+    fields:
+      baseUrl:
+        description: "description"
+        type: "string"
   endpoint:
     type: http_endpoint
-    typeName: http.user.create
+    typeName: http.user.create.one
     description: "Allows creating a user"
     path: /user/create
     method: POST
-    request: user_account_management.user.create
+    request: http.user.create.request
     responses:
       success:
         statusCode: 200

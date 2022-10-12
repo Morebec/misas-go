@@ -15,6 +15,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"text/template"
 )
@@ -369,23 +370,30 @@ func GenerateCodeForSpec(ctx *GoSnippetGenerationContext, spec spec.Spec) error 
 // GenerateSnippet generates a GoSnippet from a GoSnippetGenerationContext.
 func GenerateSnippet(ctx *GoSnippetGenerationContext) (GoSnippet, error) {
 
-	strcase.ConfigureAcronym("id", "ID")
+	acronyms := map[string]struct{}{
+		"URL":  {},
+		"ID":   {},
+		"HTTP": {},
+	}
 
 	t := template.New("template " + ctx.TemplateName).Funcs(map[string]any{
 
 		// converts a string so that it adheres to the exported type naming scheme of go.
 		// This can be useful for type names, struct field names, and constants.
 		"AsExportedGoName": func(value string) string {
-			if value == "id" {
-				return "ID"
+			upper := strcase.ToCamel(value)
+			re := regexp.MustCompile(`[A-Z][^A-Z]*`)
+			matches := re.FindAllString(upper, -1)
+			final := ""
+			for _, element := range matches {
+				upperElem := strings.ToUpper(element)
+				if _, found := acronyms[upperElem]; found {
+					final += upperElem
+				} else {
+					final += element
+				}
 			}
-
-			if strings.HasSuffix(value, "Id") {
-				value = strings.TrimSuffix(value, "Id")
-				value = value + "ID"
-			}
-
-			return strcase.ToCamel(value)
+			return final
 		},
 
 		// converts a string so that it adheres to the non exported type naming scheme of go.
