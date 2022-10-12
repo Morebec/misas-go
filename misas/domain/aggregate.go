@@ -111,7 +111,7 @@ func (r EventStoreRepository[T]) Update(ctx context.Context, streamId store.Stre
 	return nil
 }
 
-func (r EventStoreRepository[T]) Load(ctx context.Context, id store.StreamID) (*T, Version, error) {
+func (r EventStoreRepository[T]) Load(ctx context.Context, id store.StreamID) (T, Version, error) {
 	stream, err := r.eventStore.ReadFromStream(ctx, id, store.FromStart(), store.InForwardDirection())
 	if err != nil {
 		return nil, 0, errors.Wrapf(err, "failed loading aggregate from stream \"%s\"", id)
@@ -129,5 +129,5 @@ func (r EventStoreRepository[T]) Load(ctx context.Context, id store.StreamID) (*
 		version = version.Incremented()
 	}
 
-	return &aggregate, version, nil
+	return aggregate, version, nil
 }
