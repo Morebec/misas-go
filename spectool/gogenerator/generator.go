@@ -607,7 +607,7 @@ func GoProcessor() processing.Step[*processing.Context] {
 
 func generateStruct(ctx *GoProcessingContext, evt spec.Spec) error {
 	templateCode := `
-const {{ .StructName }}TypeName event.TypeName = "{{ .TypeName }}"
+const {{ .StructName }}TypeName string = "{{ .TypeName }}"
 
 // {{ .StructName }} {{ .Description }}
 type {{ .StructName }} struct {
@@ -618,7 +618,7 @@ type {{ .StructName }} struct {
 	{{ end }}
 }
 
-func (c {{ .StructName }}) TypeName() vent.TypeName {
+func (c {{ .StructName }}) TypeName() string {
 	return {{ .StructName }}TypeName
 }
 `

@@ -67,6 +67,9 @@ type CreateUserCommand struct {
 	// list of permissions
 	Permissions map[float64]string `json:"permissions"`
 
+	//
+	RefereeID string `json:"refereeId"`
+
 	// Registration of user
 	Registration RenameUserCommand `json:"registration"`
 }

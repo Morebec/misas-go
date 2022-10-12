@@ -9,6 +9,10 @@ fields:
     description: "ID of the user"
     type: identifier
 
+  refereeId:
+    description: ""
+    type: identifier
+
   registration:
     description: "Registration of user"
     type: user_account_management.registration.register
