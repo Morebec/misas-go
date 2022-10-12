@@ -452,7 +452,22 @@ func ResolveGoType(ctx *GoSnippetGenerationContext, t typesystem.DataType) (GoTy
 		}
 
 		if t.IsContainer() {
-			return ResolveGoType(ctx, t.BaseType())
+			resolved, err := ResolveGoType(ctx, t.BaseType())
+			if err != nil {
+				return GoType{}, errors.Wrapf(err, "failed resolving container type %s", t)
+			}
+
+			if t.IsMap() {
+				keyType, err := ResolveGoType(ctx, t.ContainerInfo().KeyType)
+				if err != nil {
+					return GoType{}, errors.Wrapf(err, "failed resolving key of container type %s", t)
+				}
+				resolved.TypeName = fmt.Sprintf("map[%s]%s", keyType.TypeName, resolved.TypeName)
+				return resolved, nil
+			}
+
+			resolved.TypeName = fmt.Sprintf("[]%s", resolved.TypeName)
+			return resolved, nil
 		}
 
 		// User defined type.
