@@ -5,7 +5,6 @@ import (
 	"github.com/morebec/misas-go/spectool/builtin"
 	"github.com/morebec/misas-go/spectool/gogenerator"
 	"github.com/morebec/misas-go/spectool/processing"
-	"github.com/morebec/misas-go/spectool/spec"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -31,14 +30,14 @@ func Run(ctx context.Context, systemSpecFile string, steps ...processing.Step[*p
 	doWork := func() error {
 		pCtx.Logger.Infof("Loading system spec at %s ...", systemSpecFile)
 
-		source, err := processing.LoadSourceFromFile(systemSpecFile)
+		sources, err := processing.LoadSourcesFromFile(systemSpecFile)
 		if err != nil {
 			return errors.Wrapf(err, "failed loading system spec at %s", systemSpecFile)
 		}
 
-		pCtx.AddSources([]spec.Source{source})
+		pCtx.AddSources(sources)
 
-		pCtx.SystemSpec, err = processing.SystemSpecDeserializer().Deserialize(source)
+		pCtx.SystemSpec, err = processing.SystemSpecDeserializer().Deserialize(sources[0])
 		if err != nil {
 			return errors.Wrapf(err, "failed loading system spec at %s", systemSpecFile)
 		}
