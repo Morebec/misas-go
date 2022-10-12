@@ -622,7 +622,7 @@ type {{ .StructName }} struct {
 	{{ range $field := .Fields }}
 		// {{ $field.Description }} {{ if $field.Annotations.HasKey "personal_data" }}
 		// NOTE: This field contains personal data{{ end }}
-		{{ $field.Name | AsExportedGoName }} {{ $field.Type | AsResolvedGoType }} {{ $field.Name | AsJsonAnnotation }}
+		{{ $field.Name | AsExportedGoName }} {{ if $field.Nullable }}*{{ end }}{{ $field.Type | AsResolvedGoType }} {{ $field.Name | AsJsonAnnotation }}
 	{{ end }}
 }
 
@@ -728,7 +728,7 @@ type {{ .StructName }} struct {
 	{{ range $field := .Fields }}
 		// {{ $field.Description }} {{ if $field.Annotations.HasKey "personal_data" }}
 		// NOTE: This field contains personal data{{ end }}
-		{{ $field.Name | AsExportedGoName }} {{ $field.Type | AsResolvedGoType }} {{ $field.Name | AsJsonAnnotation }}
+		{{ $field.Name | AsExportedGoName }} {{ if $field.Nullable }}*{{ end }}{{ $field.Type | AsResolvedGoType }} {{ $field.Name | AsJsonAnnotation }}
 	{{ end }}
 }
 
@@ -786,7 +786,7 @@ type {{ .StructName }} struct {
 	{{ range $field := .Fields }}
 		// {{ $field.Description }} {{ if $field.Annotations.HasKey "personal_data" }}
 		// NOTE: This field contains personal data{{ end }}
-		{{ $field.Name | AsExportedGoName }} {{ $field.Type | AsResolvedGoType }} {{ $field.Name | AsJsonAnnotation }}
+		{{ $field.Name | AsExportedGoName }} {{ if $field.Nullable }}*{{ end }}{{ $field.Type | AsResolvedGoType }} {{ $field.Name | AsJsonAnnotation }}
 	{{ end }}
 }
 

@@ -49,7 +49,7 @@ const HttpUserCreateRequestTypeName string = "http.user.create.request"
 type HttpUserCreateRequest struct {
 
 	// description
-	BaseURL string `json:"baseUrl"`
+	BaseURL *string `json:"baseUrl"`
 }
 
 func (c HttpUserCreateRequest) TypeName() string {

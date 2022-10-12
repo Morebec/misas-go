@@ -12,6 +12,7 @@ fields:
   refereeId:
     description: ""
     type: identifier
+    nullable: true
 
   registration:
     description: "Registration of user"
