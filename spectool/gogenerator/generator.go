@@ -692,9 +692,28 @@ type {{ .EnumName }} {{ .EnumBaseType | AsResolvedGoType }}
 
 const ({{ range $value := .Values }}
 	// {{ .Name | AsExportedGoName }} {{ $value.Description }}
-	{{ .Name | AsExportedGoName }} {{ $.EnumBaseType | AsResolvedGoType }} =
+	{{ .Name | AsExportedGoName }} {{ $.EnumName }} =
 	{{ if eq $.EnumBaseType "string" }} "{{ .Value }}" {{ else }} {{ .Value }} {{ end }}
 {{ end }})
+
+
+// {{ .EnumName }}Values returns the list of valid values for {{ .EnumName }}.
+func {{ .EnumName }}Values() []{{ .EnumName }} {
+	return []{{ .EnumName}}{
+		{{ range $value := .Values }}{{ .Name | AsExportedGoName }},
+		{{ end }}
+	}
+}
+
+// IsValid{{.EnumName}} indicates if a certain value is a valid {{ .EnumName }}.
+func IsValid{{.EnumName}}(v {{ .EnumName }}) bool {
+	for _, value := range {{ .EnumName}}Values() {
+		if value == v {
+			return true
+		}
+	}
+	return false
+}
 `
 	type TemplateData struct {
 		EnumName     string
