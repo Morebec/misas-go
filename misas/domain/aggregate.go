@@ -18,6 +18,7 @@ import (
 	"context"
 	"github.com/google/uuid"
 	"github.com/morebec/misas-go/misas"
+	"github.com/morebec/misas-go/misas/command"
 	"github.com/morebec/misas-go/misas/event"
 	"github.com/morebec/misas-go/misas/event/store"
 	"github.com/pkg/errors"
@@ -31,69 +32,43 @@ func (v Version) Incremented() Version {
 	return v + 1
 }
 
-// EventSourcedAggregate Represents a consistency boundary of a given concept in a system.
-// In the context of event sourcing, an aggregate is both a projection and a change agent.
-// Internally an EventSourcedAggregate should save its state changes as a series of recorded events.
-type EventSourcedAggregate interface {
-	// ApplyEvent applies an event to this aggregate without recording it as a recorded change.
-	ApplyEvent(e event.Event)
-
-	// RecordedEvents returns the list of events recorded as state changes by this aggregate.
-	RecordedEvents() event.List
-
-	// ClearRecordedEvents clears the list of recorded events on this aggregate.
-	ClearRecordedEvents()
-}
-
-// EventSourcedAggregateBase Represents an embeddable struct that implements the event recording methods of the EventSourcedAggregate interface.
-// It takes a applyEvent callback in order to apply events to a given aggregate when an event is recorded.
-type EventSourcedAggregateBase struct {
-	ApplyEvent     func(evt event.Event)
-	recordedEvents event.List
-}
-
-func (r *EventSourcedAggregateBase) RecordedEvents() event.List {
-	return r.recordedEvents
-}
-
-func (r *EventSourcedAggregateBase) ClearRecordedEvents() {
-	r.recordedEvents = nil
-}
-
-// RecordEvent records an event and applies it as per its applyEvent callback.
-func (r *EventSourcedAggregateBase) RecordEvent(e event.Event) {
-	r.recordedEvents = append(r.recordedEvents, e)
-	if r.ApplyEvent == nil {
-		panic("no apply event callback has been provided.")
-	}
-	r.ApplyEvent(e)
-}
-
-// EventStoreRepository is a service responsible for easily storing the recorded events of EventSourcedAggregate into an store.EventStore.
-type EventStoreRepository[T EventSourcedAggregate] struct {
+// EventStoreRepository is a service responsible for easily storing and retrieving event.Event into a store.EventStore.
+type EventStoreRepository struct {
 	eventStore       store.EventStore
 	eventConverter   *store.EventConverter
-	newAggregateFunc func() T
+	metadataProvider func(e event.Event) misas.Metadata
+	streamPrefix     string
 }
 
-func NewEventStoreRepository[T EventSourcedAggregate](eventStore store.EventStore, eventConverter *store.EventConverter) EventStoreRepository[T] {
-	return EventStoreRepository[T]{eventStore: eventStore, eventConverter: eventConverter}
+func NewEventStoreRepository(
+	eventStore store.EventStore,
+	eventConverter *store.EventConverter,
+	metadataProvider func(e event.Event) misas.Metadata,
+) EventStoreRepository {
+	if metadataProvider == nil {
+		metadataProvider = func(e event.Event) misas.Metadata {
+			return misas.Metadata{}
+		}
+	}
+
+	return EventStoreRepository{
+		eventStore:       eventStore,
+		eventConverter:   eventConverter,
+		metadataProvider: metadataProvider,
+	}
 }
 
-func (r EventStoreRepository[T]) Add(ctx context.Context, streamId store.StreamID, a T) error {
-	return r.Update(ctx, streamId, a, Version(store.InitialVersion))
-}
-
-func (r EventStoreRepository[T]) Update(ctx context.Context, streamId store.StreamID, a T, version Version) error {
+// Save a list of events to a given stream
+func (r EventStoreRepository) Save(ctx context.Context, streamId store.StreamID, events event.List, version Version) error {
 	expectedVersion := store.StreamVersion(version)
 	var descriptors []store.EventDescriptor
 
-	for _, e := range a.RecordedEvents() {
+	for _, e := range events {
 		payload, err := r.eventConverter.ToEventPayload(e)
 		if err != nil {
-			return errors.Wrapf(err, "failed saving aggregate to stream \"%s\"", streamId)
+			return errors.Wrapf(err, "failed saving events to stream \"%s\"", streamId)
 		}
-		m := misas.Metadata{}
+		m := r.metadataProvider(e)
 
 		descriptors = append(descriptors, store.EventDescriptor{
 			ID:       store.EventID(uuid.New().String()),
@@ -104,32 +79,162 @@ func (r EventStoreRepository[T]) Update(ctx context.Context, streamId store.Stre
 	}
 
 	if err := r.eventStore.AppendToStream(ctx, streamId, descriptors, store.WithExpectedVersion(expectedVersion)); err != nil {
-		return errors.Wrapf(err, "failed saving aggregate to stream \"%s\"", streamId)
+		return errors.Wrapf(err, "failed saving events to stream \"%s\"", streamId)
 	}
 
-	a.ClearRecordedEvents()
 	return nil
 }
 
-func (r EventStoreRepository[T]) Load(ctx context.Context, id store.StreamID) (T, Version, error) {
-	stream, err := r.eventStore.ReadFromStream(ctx, id, store.FromStart(), store.InForwardDirection())
-	if err != nil {
-		var out T
-		return out, 0, errors.Wrapf(err, "failed loading aggregate from stream \"%s\"", id)
+// Load a list of event from a given stream.
+func (r EventStoreRepository) Load(ctx context.Context, id store.StreamID) (event.List, Version, error) {
+	operationFailed := func(err error) error {
+		return errors.Wrapf(err, "failed loading state from stream \"%s\"", id)
 	}
 
-	var aggregate T
+	stream, err := r.eventStore.ReadFromStream(ctx, id, store.FromStart(), store.InForwardDirection())
+	if err != nil {
+		return nil, 0, operationFailed(err)
+	}
+
 	version := Version(store.InitialVersion)
 
+	var events event.List
 	for _, d := range stream.Descriptors {
 		e, err := r.eventConverter.FromRecordedEventDescriptor(d)
 		if err != nil {
-			var out T
-			return out, 0, errors.Wrapf(err, "failed loading aggregate from stream \"%s\"", id)
+			return nil, 0, operationFailed(err)
 		}
-		aggregate.ApplyEvent(e)
+		events = append(events, e)
 		version = version.Incremented()
 	}
 
-	return aggregate, version, nil
+	return nil, version, nil
+}
+
+// StateProjector is responsible for projecting an event onto a state.
+type StateProjector[S any] func(s S, e event.Event) S
+
+// StateHandler is responsible for handling a command for a given state and returning an event.List as a result
+// of any doable state changes.
+type StateHandler[S any, C command.Command] func(s S, c C) (event.List, error)
+
+// IDProviderFromEvent is responsible for returning the ID of the stream associated with a given state for a given event.
+type IDProviderFromEvent[E event.Event] func(e E) string
+
+// EventStreamCreatingCommandHandler is an implementation of a command.Handler that automates
+// the common boilerplate of command handlers that create new streams, by saving the resulting events to the event store.
+func EventStreamCreatingCommandHandler[S any, C command.Command, E event.Event](
+	repository EventStoreRepository,
+	projector StateProjector[S],
+	idProvider IDProviderFromEvent[E],
+	handler StateHandler[S, C],
+) command.HandlerFunc {
+	if projector == nil {
+		panic("projector cannot be nil")
+	}
+
+	if idProvider == nil {
+		panic("idProvider cannot be nil")
+	}
+
+	if handler == nil {
+		panic("handler cannot be nil")
+	}
+
+	return func(ctx context.Context, c command.Command) (any, error) {
+		cmd := c.(C)
+		var s S
+
+		// Handle Command
+		events, err := handler(s, cmd)
+		if err != nil {
+			return nil, err
+		}
+
+		// apply event on state
+		var idProvided string
+		for _, e := range events {
+			s = projector(s, e)
+			if _, ok := e.(E); ok {
+				idProvided = idProvider(e.(E))
+			}
+		}
+
+		// save to repository
+		if err := repository.Save(ctx, store.StreamID(idProvided), events, Version(store.InitialVersion)); err != nil {
+			return nil, err
+		}
+
+		// return list of events.
+		return events, nil
+	}
+}
+
+// IDProviderFromCommand is responsible for returning the ID of the stream associated with a given state for a given command.
+type IDProviderFromCommand[C command.Command] func(c C) string
+
+// EventStreamUpdatingCommandHandler is an implementation of a command.Handler that automates
+// the common boilerplate of command handlers updating an event stream, by saving the resulting events to the event store.
+func EventStreamUpdatingCommandHandler[S any, C command.Command](
+	repository EventStoreRepository,
+	projector StateProjector[S],
+	idProvider IDProviderFromCommand[C],
+	handler StateHandler[S, C],
+) command.HandlerFunc {
+	if projector == nil {
+		panic("projector cannot be nil")
+	}
+
+	if idProvider == nil {
+		panic("idProvider cannot be nil")
+	}
+
+	if handler == nil {
+		panic("handler cannot be nil")
+	}
+
+	foldState := func(s S, events event.List) S {
+		for _, e := range events {
+			s = projector(s, e)
+		}
+		return s
+	}
+
+	return func(ctx context.Context, c command.Command) (any, error) {
+		cmd := c.(C)
+		idProvided := idProvider(cmd)
+		var version Version
+		var s S
+
+		// If we have an ID, this means the command
+		// is related to a certain state, otherwise, we are dealing with a creation command.
+		if idProvided != "" {
+			streamID := store.StreamID(idProvided)
+			loaded, v, err := repository.Load(ctx, streamID)
+			if err != nil {
+				return nil, err
+			}
+			version = v
+
+			// Load State from events.
+			s = foldState(s, loaded)
+		}
+
+		// Handle Command
+		events, err := handler(s, cmd)
+		if err != nil {
+			return nil, err
+		}
+
+		// apply event on state
+		s = foldState(s, events)
+
+		// save to repository
+		if err := repository.Save(ctx, store.StreamID(idProvided), events, version); err != nil {
+			return nil, err
+		}
+
+		// return list of events.
+		return events, nil
+	}
 }
