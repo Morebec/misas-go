@@ -2,6 +2,17 @@
 
 package user
 
+import (
+	"encoding/json"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/render"
+	"github.com/morebec/misas-go/misas/command"
+	"github.com/morebec/misas-go/misas/domain"
+	"github.com/morebec/misas-go/misas/event"
+	"github.com/morebec/misas-go/misas/httpapi"
+	"net/http"
+)
+
 // httpUserCreateOne Allows creating a user
 func httpUserCreateOne(r chi.Router, bus command.Bus) {
 	r.Get("/user/create", func(w http.ResponseWriter, r *http.Request) {

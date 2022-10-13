@@ -2,6 +2,10 @@
 
 package registration
 
+import (
+	"github.com/morebec/misas-go/misas/command"
+)
+
 const RenameUserCommandTypeName command.TypeName = "user_account_management.registration.register"
 
 // RenameUserCommand Allows creating a user.

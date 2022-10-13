@@ -3,8 +3,23 @@
 package customer
 
 import (
+	"github.com/morebec/misas-go/misas/command"
+	"github.com/morebec/misas-go/misas/event"
 	"time"
 )
+
+const RegisterCustomerCommandTypeName command.TypeName = "customer.register"
+
+// RegisterCustomerCommand Registers a Customer
+type RegisterCustomerCommand struct {
+
+	// ID of the customer that was registered. This identifier is mapped to the customer's user account ID.
+	CustomerID string `json:"customerId"`
+}
+
+func (c RegisterCustomerCommand) TypeName() command.TypeName {
+	return RegisterCustomerCommandTypeName
+}
 
 const CustomerRegisteredEventTypeName event.TypeName = "customer.registered"
 
@@ -20,17 +35,4 @@ type CustomerRegisteredEvent struct {
 
 func (c CustomerRegisteredEvent) TypeName() event.TypeName {
 	return CustomerRegisteredEventTypeName
-}
-
-const RegisterCustomerCommandTypeName command.TypeName = "customer.register"
-
-// RegisterCustomerCommand Registers a Customer
-type RegisterCustomerCommand struct {
-
-	// ID of the customer that was registered. This identifier is mapped to the customer's user account ID.
-	CustomerID string `json:"customerId"`
-}
-
-func (c RegisterCustomerCommand) TypeName() command.TypeName {
-	return RegisterCustomerCommandTypeName
 }
