@@ -167,15 +167,47 @@ func GenerateCommandDocumentation() processing.Step[*processing.Context] {
 func WriteOutputFiles() processing.Step[*processing.Context] {
 	return func(ctx *processing.Context) error {
 		ctx.Logger.Info("Writing output files ...")
+
+		registry := processing.NewOutputFileRegistry()
+
 		for _, file := range ctx.OutputFiles {
 			ctx.Logger.Infof("Writing file %s ...", file.Path)
 			err := os.WriteFile(file.Path, file.Data, os.ModePerm)
 			if err != nil {
 				return errors.Wrapf(err, "failed writing output file at %s", file.Path)
 			}
+			registry.Files = append(registry.Files, file.Path)
 		}
+
+		ctx.Logger.Info("Writing output file registry ...")
+		if err := registry.Write(); err != nil {
+			return errors.Wrap(err, "failed writing output files")
+		}
+		ctx.Logger.Info("Output file registry written successfully.")
+
 		ctx.Logger.Info("Output files written successfully.")
 
+		return nil
+	}
+}
+
+func CleanOutputFiles() processing.Step[*processing.Context] {
+	return func(ctx *processing.Context) error {
+		ctx.Logger.Info("Cleaning previous output files from registry ...")
+		if _, err := os.Stat(processing.OutputFileRegistryFileName); errors.Is(err, os.ErrNotExist) {
+			ctx.Logger.Warn("No output file registry, skipping ...")
+			return nil
+		}
+
+		registry, err := processing.LoadOutputFileRegistry()
+		if err != nil {
+			return errors.Wrap(err, "failed cleaning output file registry")
+		}
+		if err := registry.Clean(); err != nil {
+			return errors.Wrap(err, "failed cleaning output file registry")
+		}
+
+		ctx.Logger.Info("Previous output files cleaned from registry successfully.")
 		return nil
 	}
 }
@@ -185,6 +217,7 @@ func Default(systemSpecFile string) func(ctx context.Context) error {
 		return Run(
 			ctx,
 			systemSpecFile,
+			CleanOutputFiles(),
 			LoadSpecs(
 				processing.SystemSpecDeserializer(),
 				builtin.CommandDeserializer(),

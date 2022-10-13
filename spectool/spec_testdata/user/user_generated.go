@@ -86,8 +86,26 @@ type Type string
 
 const (
 	// Admin Represents a admin user
-	Admin string = "ADMIN"
+	Admin Type = "ADMIN"
 
 	// Normal Represents a normal user
-	Normal string = "NORMAL"
+	Normal Type = "NORMAL"
 )
+
+// TypeValues returns the list of valid values for Type.
+func TypeValues() []Type {
+	return []Type{
+		Admin,
+		Normal,
+	}
+}
+
+// IsValidType indicates if a certain value is a valid Type.
+func IsValidType(v Type) bool {
+	for _, value := range TypeValues() {
+		if value == v {
+			return true
+		}
+	}
+	return false
+}

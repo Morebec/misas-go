@@ -17,3 +17,5 @@ vendor/
 # IDEA
 .vscode/
 .idea/
+
+.specs.json

@@ -3,6 +3,8 @@ type: enum
 typeName: user_account_management.user.type
 description: |
   Represents the types of users.
+annotations:
+  gen:go:name: "Type"
 baseType: string
 values:
   normal:
@@ -12,5 +14,3 @@ values:
     description: "Represents a admin user"
     value: "ADMIN"
 
-annotations:
-  gen:go:name: "Type"
