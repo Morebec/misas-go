@@ -24,13 +24,13 @@ type Type typesystem.Type
 // TypeName represents the user defined type name of a Spec.
 type TypeName typesystem.Type
 
-// FollowsModuleConvention indicates if the type name follows the `module.type.other.other` convention.
-func (t TypeName) FollowsModuleConvention() bool {
+// FollowsSubsystemConvention indicates if the type name follows the `subsystem.type.other.other` convention.
+func (t TypeName) FollowsSubsystemConvention() bool {
 	return len(t.Parts()) >= 2
 }
 
-func (t TypeName) ModuleName() string {
-	if !t.FollowsModuleConvention() {
+func (t TypeName) SubsystemName() string {
+	if !t.FollowsSubsystemConvention() {
 		return ""
 	}
 

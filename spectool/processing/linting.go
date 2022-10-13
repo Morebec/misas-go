@@ -138,8 +138,8 @@ func SpecificationsShouldFollowNamingConvention() Linter {
 		var lintingWarnings LintingWarnings
 		for _, s := range specs {
 			nbParts := len(s.TypeName.Parts())
-			if nbParts < 3 {
-				lintingWarnings = append(lintingWarnings, fmt.Sprintf("%s %s does not follow the <module>.<entity>.<sub_entity> naming convention at %s", s.Type, s.TypeName, s.Source.Location))
+			if nbParts < 2 {
+				lintingWarnings = append(lintingWarnings, fmt.Sprintf("%s %s does not follow the <subsystem>.<entity>.<sub_entity> naming convention at %s", s.Type, s.TypeName, s.Source.Location))
 			}
 		}
 

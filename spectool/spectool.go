@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -170,20 +171,33 @@ func WriteOutputFiles() processing.Step[*processing.Context] {
 
 		registry := processing.NewOutputFileRegistry()
 
+		failed := false
+		var wg sync.WaitGroup
 		for _, file := range ctx.OutputFiles {
-			ctx.Logger.Infof("Writing file %s ...", file.Path)
-			err := os.WriteFile(file.Path, file.Data, os.ModePerm)
-			if err != nil {
-				return errors.Wrapf(err, "failed writing output file at %s", file.Path)
-			}
-			registry.Files = append(registry.Files, file.Path)
+			wg.Add(1)
+			file := file
+			go func() {
+				defer wg.Done()
+				ctx.Logger.Infof("Writing file %s ...", file.Path)
+				err := os.WriteFile(file.Path, file.Data, os.ModePerm)
+				if err != nil {
+					failed = true
+					ctx.Logger.Error(errors.Wrapf(err, "failed writing output file at %s", file.Path))
+				}
+				registry.Files = append(registry.Files, file.Path)
+			}()
 		}
+		wg.Wait()
 
 		ctx.Logger.Info("Writing output file registry ...")
 		if err := registry.Write(); err != nil {
 			return errors.Wrap(err, "failed writing output files")
 		}
 		ctx.Logger.Info("Output file registry written successfully.")
+
+		if failed {
+			return errors.New("failed writing output files")
+		}
 
 		ctx.Logger.Info("Output files written successfully.")
 

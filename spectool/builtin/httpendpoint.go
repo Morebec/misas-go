@@ -91,7 +91,7 @@ func HTTPEndpointsShouldFollowNamingConvention() processing.Linter {
 		var lintingWarnings processing.LintingWarnings
 		for _, c := range endpoints {
 			if len(c.TypeName.Parts()) < 3 {
-				lintingWarnings = append(lintingWarnings, fmt.Sprintf("endpoint %s does not follow the module.aggregate.entity.action naming convention at %s", c.TypeName, c.Source.Location))
+				lintingWarnings = append(lintingWarnings, fmt.Sprintf("endpoint %s does not follow the subsystem.aggregate.entity.action naming convention at %s", c.TypeName, c.Source.Location))
 			}
 		}
 

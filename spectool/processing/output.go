@@ -65,6 +65,9 @@ func (r OutputFileRegistry) Clean() error {
 		f := f
 		go func() {
 			defer wg.Done()
+			if _, err := os.Stat(f); errors.Is(err, os.ErrNotExist) {
+				return
+			}
 			if err := os.Remove(f); err != nil {
 				panic(errors.Wrap(err, "failed cleaning output registry files"))
 			}
