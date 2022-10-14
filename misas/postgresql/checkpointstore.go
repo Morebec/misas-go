@@ -48,21 +48,21 @@ CREATE TABLE IF NOT EXISTS checkpoints
 	return nil
 }
 
-func (cs *CheckpointStore) OpenConnection() error {
+func (cs *CheckpointStore) Open(ctx context.Context) error {
 	db, err := sql.Open("postgres", cs.connectionString)
 	if err != nil {
 		return errors.Wrap(err, "failed opening connection to event store")
 	}
 	cs.conn = db
 
-	if err = cs.conn.Ping(); err != nil {
+	if err = cs.conn.PingContext(ctx); err != nil {
 		return errors.Wrap(err, "failed opening connection to event store")
 	}
 
 	return cs.setupSchemas()
 }
 
-func (cs *CheckpointStore) CloseConnection() error {
+func (cs *CheckpointStore) Close() error {
 	if err := cs.conn.Close(); err != nil {
 		return errors.Wrap(err, "failed closing connection to event store")
 	}
@@ -76,7 +76,7 @@ INSERT INTO checkpoints (id, stream_id, position)
 VALUES($1, $2, $3);
 `
 
-	_, err := cs.conn.Exec(insertSql, checkpoint.ID, checkpoint.StreamID, checkpoint.Position)
+	_, err := cs.conn.ExecContext(ctx, insertSql, checkpoint.ID, checkpoint.StreamID, checkpoint.Position)
 	if err != nil {
 		return errors.Wrapf(err,
 			"failed storing checkpoint \"%s\" for stream \"%s\"",
@@ -93,7 +93,7 @@ func (cs *CheckpointStore) FindById(ctx context.Context, id processing.Checkpoin
 SELECT id, stream_id, position FROM checkpoints
 WHERE id = $1;
 `
-	row := cs.conn.QueryRow(selecSql, id)
+	row := cs.conn.QueryRowContext(ctx, selecSql, id)
 	if row.Err() != nil {
 		return nil, errors.Wrapf(row.Err(), "failed retrieving checkpoint \"%s\"", id)
 	}
@@ -117,15 +117,15 @@ DELETE FROM checkpoints
 WHERE id = $1
 ;
 `
-	if _, err := cs.conn.Exec(deleteSql, id); err != nil {
+	if _, err := cs.conn.ExecContext(ctx, deleteSql, id); err != nil {
 		return errors.Wrapf(err, "failed removing checkpoint \"%s\"", id)
 	}
 
 	return nil
 }
 
-func (cs *CheckpointStore) Clear() error {
-	if _, err := cs.conn.Exec("TRUNCATE TABLE checkpoints"); err != nil {
+func (cs *CheckpointStore) Clear(ctx context.Context) error {
+	if _, err := cs.conn.ExecContext(ctx, "TRUNCATE TABLE checkpoints"); err != nil {
 		return errors.Wrap(err, "failed clearing checkpoint store")
 	}
 

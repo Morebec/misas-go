@@ -24,11 +24,11 @@ import (
 func buildCheckpointStore() *CheckpointStore {
 	store := NewCheckpointStore("postgres://postgres@localhost:5432/postgres?sslmode=disable")
 
-	if err := store.OpenConnection(); err != nil {
+	if err := store.Open(context.Background()); err != nil {
 		panic(err)
 	}
 
-	if err := store.Clear(); err != nil {
+	if err := store.Clear(context.Background()); err != nil {
 		panic(err)
 	}
 
@@ -37,7 +37,7 @@ func buildCheckpointStore() *CheckpointStore {
 
 func TestCheckpointStore_CloseConnection(t *testing.T) {
 	store := buildCheckpointStore()
-	err := store.CloseConnection()
+	err := store.Close()
 	assert.NoError(t, err)
 }
 
