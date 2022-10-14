@@ -15,6 +15,7 @@
 package postgresql
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"github.com/morebec/misas-go/misas"
@@ -38,7 +39,7 @@ func NewPredictionStore(connectionString string, clock clock.Clock) *PredictionS
 	}
 }
 
-func (ps *PredictionStore) setupSchemas() error {
+func (ps *PredictionStore) setupSchemas(ctx context.Context) error {
 	createTableSql := `create table if not exists predictions
 (
     id                varchar(255) not null primary key,
@@ -52,7 +53,7 @@ CREATE INDEX IF NOT EXISTS idx_id
     ON predictions (id);
 `
 
-	_, err := ps.database.Exec(createTableSql)
+	_, err := ps.database.ExecContext(ctx, createTableSql)
 	if err != nil {
 		return errors.Wrap(err, "failed creating table predictions")
 	}
@@ -60,28 +61,28 @@ CREATE INDEX IF NOT EXISTS idx_id
 	return nil
 }
 
-func (ps *PredictionStore) OpenConnection() error {
+func (ps *PredictionStore) Open(ctx context.Context) error {
 	db, err := sql.Open("postgres", ps.connectionString)
 	if err != nil {
 		return errors.Wrap(err, "failed opening connection to event store")
 	}
 	ps.database = db
 
-	if err = ps.database.Ping(); err != nil {
+	if err = ps.database.PingContext(ctx); err != nil {
 		return errors.Wrap(err, "failed opening connection to event store")
 	}
 
-	return ps.setupSchemas()
+	return ps.setupSchemas(ctx)
 }
 
-func (ps *PredictionStore) CloseConnection() error {
+func (ps *PredictionStore) Close() error {
 	if err := ps.database.Close(); err != nil {
 		return errors.Wrap(err, "failed closing connection to event store")
 	}
 	return nil
 }
 
-func (ps *PredictionStore) Add(p prediction.Prediction, m misas.Metadata) error {
+func (ps *PredictionStore) Add(ctx context.Context, p prediction.Prediction, m misas.Metadata) error {
 	insertSql := "INSERT INTO predictions (id, will_occur_at, data, type, metadata) VALUES ($1, $2, $3, $4, $5)"
 
 	predictionAsJson, err := json.Marshal(p)
@@ -94,23 +95,23 @@ func (ps *PredictionStore) Add(p prediction.Prediction, m misas.Metadata) error 
 		return errors.Wrap(err, "failed adding prediction to the prediction store:")
 	}
 
-	if _, err = ps.database.Exec(insertSql, p.ID(), p.WillOccurAt(), predictionAsJson, metadataAsJson); err != nil {
+	if _, err = ps.database.ExecContext(ctx, insertSql, p.ID(), p.WillOccurAt(), predictionAsJson, metadataAsJson); err != nil {
 		return errors.Wrapf(err, "failed adding prediction \"%s\" of type \"%s\" to prediction store", p.ID(), p.TypeName())
 	}
 
 	return nil
 }
 
-func (ps *PredictionStore) Remove(id prediction.ID) error {
-	if _, err := ps.database.Exec("DELETE FROM predictions WHERE ID = $1", id); err != nil {
+func (ps *PredictionStore) Remove(ctx context.Context, id prediction.ID) error {
+	if _, err := ps.database.ExecContext(ctx, "DELETE FROM predictions WHERE ID = $1", id); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (ps *PredictionStore) FindOccurredBefore(dt time.Time) ([]prediction.Descriptor, error) {
-	rows, err := ps.database.Query("SELECT id, data, type, metadata FROM predictions WHERE will_occur_at < $1", dt)
+func (ps *PredictionStore) FindOccurredBefore(ctx context.Context, dt time.Time) ([]prediction.Descriptor, error) {
+	rows, err := ps.database.QueryContext(ctx, "SELECT id, data, type, metadata FROM predictions WHERE will_occur_at < $1", dt)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed finding predictions before datetime %s", dt)
 	}

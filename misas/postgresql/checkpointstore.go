@@ -31,7 +31,7 @@ func NewCheckpointStore(connectionString string) *CheckpointStore {
 	return &CheckpointStore{connectionString: connectionString}
 }
 
-func (cs *CheckpointStore) setupSchemas() error {
+func (cs *CheckpointStore) setupSchemas(ctx context.Context) error {
 	createTableCheckpointSql := `
 CREATE TABLE IF NOT EXISTS checkpoints
 (
@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS checkpoints
     position  INTEGER NOT NULL
 );`
 
-	_, err := cs.conn.Exec(createTableCheckpointSql)
+	_, err := cs.conn.ExecContext(ctx, createTableCheckpointSql)
 	if err != nil {
 		return errors.Wrap(err, "failed creating table checkpoints")
 	}
@@ -59,7 +59,7 @@ func (cs *CheckpointStore) Open(ctx context.Context) error {
 		return errors.Wrap(err, "failed opening connection to event store")
 	}
 
-	return cs.setupSchemas()
+	return cs.setupSchemas(ctx)
 }
 
 func (cs *CheckpointStore) Close() error {

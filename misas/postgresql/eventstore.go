@@ -20,10 +20,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 	"github.com/morebec/misas-go/misas"
 	"github.com/morebec/misas-go/misas/clock"
 	"github.com/morebec/misas-go/misas/event/store"
-	"github.com/lib/pq"
 	"github.com/pkg/errors"
 	"strings"
 	"time"
@@ -51,7 +51,7 @@ func NewEventStore(
 	}
 }
 
-func (es *EventStore) setupSchemas() error {
+func (es *EventStore) setupSchemas(ctx context.Context) error {
 	createTableEventsSql := `
 CREATE TABLE IF NOT EXISTS events 
 (
@@ -80,7 +80,7 @@ CREATE INDEX IF NOT EXISTS idx_stream_version
 CREATE INDEX IF NOT EXISTS idx_sequence_number
     ON events (sequence_number);
 `
-	_, err := es.database.Exec(createTableEventsSql)
+	_, err := es.database.ExecContext(ctx, createTableEventsSql)
 	if err != nil {
 		return errors.Wrap(err, "failed creating table events")
 	}
@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS streams
     version INTEGER DEFAULT 0 NOT NULL
 );
 `
-	_, err = es.database.Exec(createStreamsTableSql)
+	_, err = es.database.ExecContext(ctx, createStreamsTableSql)
 	if err != nil {
 		return errors.Wrap(err, "failed creating table streams")
 	}
@@ -113,7 +113,7 @@ AFTER INSERT ON events
 FOR EACH ROW EXECUTE PROCEDURE notify_events();
 `
 
-	_, err = es.database.Exec(notifyEventsSql)
+	_, err = es.database.ExecContext(ctx, notifyEventsSql)
 	if err != nil {
 		return errors.Wrap(err, "failed creating notification and function trigger")
 	}
@@ -121,21 +121,21 @@ FOR EACH ROW EXECUTE PROCEDURE notify_events();
 	return nil
 }
 
-func (es *EventStore) OpenConnection() error {
+func (es *EventStore) Open(ctx context.Context) error {
 	db, err := sql.Open("postgres", es.connectionString)
 	if err != nil {
 		return errors.Wrap(err, "failed opening connection to event store")
 	}
 	es.database = db
 
-	if err = es.database.Ping(); err != nil {
+	if err = es.database.PingContext(ctx); err != nil {
 		return errors.Wrap(err, "failed opening connection to event store")
 	}
 
-	return es.setupSchemas()
+	return es.setupSchemas(ctx)
 }
 
-func (es *EventStore) CloseConnection() error {
+func (es *EventStore) Close() error {
 	if err := es.database.Close(); err != nil {
 		return errors.Wrap(err, "failed closing connection to event store")
 	}
@@ -181,7 +181,7 @@ func (es *EventStore) AppendToStream(ctx context.Context, streamID store.StreamI
 		return store.NewConcurrencyError(streamID, *options.ExpectedVersion, streamVersion)
 	}
 
-	tx, err := es.database.Begin()
+	tx, err := es.database.BeginTx(ctx, nil)
 	if err != nil {
 		return errors.Wrapf(err, "failed starting transaction when appending events to stream \"%s\"", streamID)
 	}
@@ -203,7 +203,7 @@ VALUES ($1, $2, $3, $4, $5, $6, $7)
 			return errors.Wrap(err, "failed appending events to the event store")
 		}
 
-		if _, err = tx.Exec(insertEventSql, d.ID, streamID, streamVersion, d.TypeName, metadataAsJson, eventAsJson, es.clock.Now()); err != nil {
+		if _, err = tx.ExecContext(ctx, insertEventSql, d.ID, streamID, streamVersion, d.TypeName, metadataAsJson, eventAsJson, es.clock.Now()); err != nil {
 			if rollbackErr := tx.Rollback(); rollbackErr != nil {
 				return errors.Wrap(rollbackErr, "failed rolling back transaction when appending event to the event store")
 			}
@@ -211,7 +211,7 @@ VALUES ($1, $2, $3, $4, $5, $6, $7)
 		}
 	}
 
-	if err = es.updateStreamVersionIndex(tx, streamID, streamVersion); err != nil {
+	if err = es.updateStreamVersionIndex(ctx, tx, streamID, streamVersion); err != nil {
 		return errors.Wrap(err, "failed appending event to the event store")
 	}
 
@@ -305,7 +305,7 @@ WHERE %s
 %s
 `, selectSql, strings.Join(whereClauses, " AND "), orderBySql, limitSql)
 
-	rows, err := es.database.Query(querySql, stmtParams...)
+	rows, err := es.database.QueryContext(ctx, querySql, stmtParams...)
 	defer func(rows *sql.Rows) {
 		_ = rows.Close()
 	}(rows)
@@ -383,11 +383,11 @@ WHERE %s
 func (es *EventStore) TruncateStream(ctx context.Context, id store.StreamID, opts ...store.TruncateStreamOption) error {
 	options := store.BuildTruncateFromStreamOptions(opts)
 
-	tx, err := es.database.Begin()
+	tx, err := es.database.BeginTx(ctx, nil)
 	if err != nil {
 		return errors.Wrapf(err, "failed truncating from stream \"%s\"", id)
 	}
-	_, err = tx.Exec("DELETE FROM events WHERE stream_id = $1 AND stream_version < $2", id, options.BeforePosition)
+	_, err = tx.ExecContext(ctx, "DELETE FROM events WHERE stream_id = $1 AND stream_version < $2", id, options.BeforePosition)
 	if err != nil {
 		if err := tx.Rollback(); err != nil {
 			return errors.Wrapf(err, "failed rolling back transaction when truncating stream \"%s\"", id)
@@ -425,19 +425,19 @@ func (es *EventStore) TruncateStream(ctx context.Context, id store.StreamID, opt
 }
 
 func (es *EventStore) DeleteStream(ctx context.Context, id store.StreamID) error {
-	tx, err := es.database.Begin()
+	tx, err := es.database.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 
-	if _, err = tx.Exec("DELETE FROM events WHERE stream_id = $1", id); err != nil {
+	if _, err = tx.ExecContext(ctx, "DELETE FROM events WHERE stream_id = $1", id); err != nil {
 		if err := tx.Rollback(); err != nil {
 			return errors.Wrapf(err, "failed rolling back transaction when deleting stream \"%s\"", id)
 		}
 		return errors.Wrapf(err, "failed deleting stream \"%s\"", id)
 	}
 
-	if _, err = tx.Exec("DELETE FROM streams WHERE id = $1", id); err != nil {
+	if _, err = tx.ExecContext(ctx, "DELETE FROM streams WHERE id = $1", id); err != nil {
 		if err := tx.Rollback(); err != nil {
 			return errors.Wrapf(err, "failed rolling back transaction when deleting stream \"%s\"", id)
 		}
@@ -542,7 +542,7 @@ func (es *EventStore) StreamExists(ctx context.Context, id store.StreamID) (bool
 }
 
 func (es *EventStore) GetStream(ctx context.Context, id store.StreamID) (store.Stream, error) {
-	row := es.database.QueryRow("SELECT version FROM streams WHERE id = $1", id)
+	row := es.database.QueryRowContext(ctx, "SELECT version FROM streams WHERE id = $1", id)
 	if err := row.Err(); err != nil {
 		return store.Stream{}, errors.Wrapf(err, "failed checking information of stream \"%s\"", id)
 	}
@@ -563,19 +563,19 @@ func (es *EventStore) GetStream(ctx context.Context, id store.StreamID) (store.S
 }
 
 func (es *EventStore) Clear(ctx context.Context) error {
-	tx, err := es.database.Begin()
+	tx, err := es.database.BeginTx(ctx, nil)
 	if err != nil {
 		return errors.Wrap(err, "failed clearing event store")
 	}
 
-	if _, err := tx.Exec("TRUNCATE TABLE events"); err != nil {
+	if _, err := tx.ExecContext(ctx, "TRUNCATE TABLE events"); err != nil {
 		if err := tx.Rollback(); err != nil {
 			return errors.Wrap(err, "failed rolling back transaction when clearing event store")
 		}
 		return errors.Wrap(err, "failed clearing event store")
 	}
 
-	if _, err := tx.Exec("TRUNCATE TABLE streams"); err != nil {
+	if _, err := tx.ExecContext(ctx, "TRUNCATE TABLE streams"); err != nil {
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
 			return errors.Wrap(err, "failed rolling back transaction when clearing event store")
 		}
@@ -589,14 +589,14 @@ func (es *EventStore) Clear(ctx context.Context) error {
 	return nil
 }
 
-func (es *EventStore) updateStreamVersionIndex(tx *sql.Tx, id store.StreamID, version store.StreamVersion) error {
+func (es *EventStore) updateStreamVersionIndex(ctx context.Context, tx *sql.Tx, id store.StreamID, version store.StreamVersion) error {
 	upsertSql := `
 INSERT INTO streams (id, version) 
 VALUES($1, $2)
 ON CONFLICT (id)
 DO UPDATE SET id = $1, version = $2;
 `
-	if _, err := tx.Exec(upsertSql, id, version); err != nil {
+	if _, err := tx.ExecContext(ctx, upsertSql, id, version); err != nil {
 		return errors.Wrap(err, "failed updating stream version index")
 	}
 
