@@ -14,10 +14,27 @@
 
 package command
 
+import "context"
+
 // TypeName Represents the unique type name of a Command for serialization and discriminatory purposes.
 type TypeName string
 
 // Command intent by an agent (human or machine) to perform a state change in a system.
 type Command interface {
 	TypeName() TypeName
+}
+
+// Handler is a service responsible for executing the business logic associated with a given Command.
+type Handler interface {
+	// Handle a Command in a given context.Context and returns an optional response pertaining to the handling
+	// of the command, or an error if a problem occurred.
+	// Command handlers are responsible for defining the type of response they return.
+	Handle(ctx context.Context, c Command) (any, error)
+}
+
+// HandlerFunc Allows using a function as a Handler
+type HandlerFunc func(ctx context.Context, c Command) (any, error)
+
+func (cf HandlerFunc) Handle(ctx context.Context, c Command) (any, error) {
+	return cf(ctx, c)
 }

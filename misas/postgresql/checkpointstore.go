@@ -24,14 +24,14 @@ import (
 // CheckpointStore is a PostgreSQL implementation of a checkpoint store in a table named "checkpoints"
 type CheckpointStore struct {
 	connectionString string
-	database         *sql.DB
+	conn             *sql.DB
 }
 
 func NewCheckpointStore(connectionString string) *CheckpointStore {
 	return &CheckpointStore{connectionString: connectionString}
 }
 
-func (p *CheckpointStore) setupSchemas() error {
+func (cs *CheckpointStore) setupSchemas() error {
 	createTableCheckpointSql := `
 CREATE TABLE IF NOT EXISTS checkpoints
 (
@@ -40,7 +40,7 @@ CREATE TABLE IF NOT EXISTS checkpoints
     position  INTEGER NOT NULL
 );`
 
-	_, err := p.database.Exec(createTableCheckpointSql)
+	_, err := cs.conn.Exec(createTableCheckpointSql)
 	if err != nil {
 		return errors.Wrap(err, "failed creating table checkpoints")
 	}
@@ -48,35 +48,35 @@ CREATE TABLE IF NOT EXISTS checkpoints
 	return nil
 }
 
-func (p *CheckpointStore) OpenConnection() error {
-	db, err := sql.Open("postgres", p.connectionString)
+func (cs *CheckpointStore) OpenConnection() error {
+	db, err := sql.Open("postgres", cs.connectionString)
 	if err != nil {
 		return errors.Wrap(err, "failed opening connection to event store")
 	}
-	p.database = db
+	cs.conn = db
 
-	if err = p.database.Ping(); err != nil {
+	if err = cs.conn.Ping(); err != nil {
 		return errors.Wrap(err, "failed opening connection to event store")
 	}
 
-	return p.setupSchemas()
+	return cs.setupSchemas()
 }
 
-func (p *CheckpointStore) CloseConnection() error {
-	if err := p.database.Close(); err != nil {
+func (cs *CheckpointStore) CloseConnection() error {
+	if err := cs.conn.Close(); err != nil {
 		return errors.Wrap(err, "failed closing connection to event store")
 	}
 	return nil
 }
 
-func (p *CheckpointStore) Save(ctx context.Context, checkpoint processing.Checkpoint) error {
+func (cs *CheckpointStore) Save(ctx context.Context, checkpoint processing.Checkpoint) error {
 
 	insertSql := `
 INSERT INTO checkpoints (id, stream_id, position) 
 VALUES($1, $2, $3);
 `
 
-	_, err := p.database.Exec(insertSql, checkpoint.ID, checkpoint.StreamID, checkpoint.Position)
+	_, err := cs.conn.Exec(insertSql, checkpoint.ID, checkpoint.StreamID, checkpoint.Position)
 	if err != nil {
 		return errors.Wrapf(err,
 			"failed storing checkpoint \"%s\" for stream \"%s\"",
@@ -88,12 +88,12 @@ VALUES($1, $2, $3);
 	return nil
 }
 
-func (p *CheckpointStore) FindById(ctx context.Context, id processing.CheckpointID) (*processing.Checkpoint, error) {
+func (cs *CheckpointStore) FindById(ctx context.Context, id processing.CheckpointID) (*processing.Checkpoint, error) {
 	selecSql := `
 SELECT id, stream_id, position FROM checkpoints
 WHERE id = $1;
 `
-	row := p.database.QueryRow(selecSql, id)
+	row := cs.conn.QueryRow(selecSql, id)
 	if row.Err() != nil {
 		return nil, errors.Wrapf(row.Err(), "failed retrieving checkpoint \"%s\"", id)
 	}
@@ -111,21 +111,21 @@ WHERE id = $1;
 
 }
 
-func (p *CheckpointStore) Remove(ctx context.Context, id processing.CheckpointID) error {
+func (cs *CheckpointStore) Remove(ctx context.Context, id processing.CheckpointID) error {
 	deleteSql := `
 DELETE FROM checkpoints
 WHERE id = $1
 ;
 `
-	if _, err := p.database.Exec(deleteSql, id); err != nil {
+	if _, err := cs.conn.Exec(deleteSql, id); err != nil {
 		return errors.Wrapf(err, "failed removing checkpoint \"%s\"", id)
 	}
 
 	return nil
 }
 
-func (p *CheckpointStore) Clear() error {
-	if _, err := p.database.Exec("TRUNCATE TABLE checkpoints"); err != nil {
+func (cs *CheckpointStore) Clear() error {
+	if _, err := cs.conn.Exec("TRUNCATE TABLE checkpoints"); err != nil {
 		return errors.Wrap(err, "failed clearing checkpoint store")
 	}
 
