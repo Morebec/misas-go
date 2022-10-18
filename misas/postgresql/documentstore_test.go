@@ -165,6 +165,88 @@ func TestDocumentStore_UpsertMany(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestDocumentStore_UpdateOne(t *testing.T) {
+	type user struct {
+		Id       string `json:"id"`
+		Username string `json:"username"`
+	}
+
+	ds := buildDocumentStore()
+	defer func(ds *DocumentStore, ctx context.Context, collectionName string) {
+		_ = ds.DeleteCollection(ctx, collectionName)
+	}(ds, context.Background(), "unit_test")
+	u := user{
+		Id:       "000",
+		Username: "unit.test",
+	}
+
+	doc, err := NewDocument(u.Id, u)
+	if err != nil {
+		panic(err)
+	}
+
+	err = ds.CreateCollection(context.Background(), "unit_test")
+	assert.NoError(t, err)
+
+	// SHOULD RETURN ERROR SINCE DOC NOT FOUND
+	err = ds.UpdateOne(context.Background(), "unit_test", doc)
+	assert.Error(t, err)
+
+	// SHOULD BE UPDATED WHEN INSERTED FIRST
+	err = ds.InsertOne(context.Background(), "unit_test", doc)
+	assert.NoError(t, err)
+
+	u.Username = "updated"
+	doc, err = NewDocument(u.Id, u)
+
+	err = ds.UpdateOne(context.Background(), "unit_test", doc)
+	assert.NoError(t, err)
+}
+
+func TestDocumentStore_UpdateMany(t *testing.T) {
+	type user struct {
+		Id       string `json:"id"`
+		Username string `json:"username"`
+	}
+
+	ds := buildDocumentStore()
+	defer func(ds *DocumentStore, ctx context.Context, collectionName string) {
+		_ = ds.DeleteCollection(ctx, collectionName)
+	}(ds, context.Background(), "unit_test")
+
+	var users []Document
+
+	for i := 1; i < 3; i++ {
+		doc, err := NewDocument(strconv.Itoa(i), user{
+			Id:       strconv.Itoa(i),
+			Username: fmt.Sprintf("user_%d", i),
+		})
+		if err != nil {
+			panic(err)
+		}
+		users = append(users, doc)
+	}
+
+	err := ds.InsertMany(context.Background(), "unit_test", users)
+	assert.NoError(t, err)
+
+	users = nil
+	for i := 1; i < 3; i++ {
+		doc, err := NewDocument(strconv.Itoa(i), user{
+			Id:       strconv.Itoa(i),
+			Username: fmt.Sprintf("user_%d_updated", i),
+		})
+		if err != nil {
+			panic(err)
+		}
+		users = append(users, doc)
+	}
+
+	// documents already exists, should not return error
+	err = ds.UpdateMany(context.Background(), "unit_test", users)
+	assert.NoError(t, err)
+}
+
 func TestDocumentStore_FindOneById(t *testing.T) {
 	type user struct {
 		Id       string `json:"id"`
@@ -307,7 +389,7 @@ func TestCollection_Create(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestDocumentStore_DeleteById(t *testing.T) {
+func TestDocumentStore_DeleteOneById(t *testing.T) {
 	type user struct {
 		Id       string `json:"id"`
 		Username string `json:"username"`

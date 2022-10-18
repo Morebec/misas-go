@@ -239,7 +239,7 @@ func (ds *DocumentStore) InsertMany(ctx context.Context, collectionName string, 
 // UpsertOne a document into a collection.
 func (ds *DocumentStore) UpsertOne(ctx context.Context, collectionName string, d Document) error {
 	if err := ds.CreateCollection(ctx, collectionName); err != nil {
-		return errors.Wrapf(err, "failed inserting document into collection %s", collectionName)
+		return errors.Wrapf(err, "failed upserting document into collection %s", collectionName)
 	}
 
 	upsertQuery := fmt.Sprintf(`
@@ -249,7 +249,7 @@ ON CONFLICT (id) DO UPDATE
 SET data = $2
 `, collectionName)
 	if _, err := ds.conn.ExecContext(ctx, upsertQuery, d.id, d.data); err != nil {
-		return errors.Wrapf(err, "failed inserting document into collection %s", collectionName)
+		return errors.Wrapf(err, "failed upserting document into collection %s", collectionName)
 	}
 
 	return nil
@@ -259,20 +259,67 @@ SET data = $2
 func (ds *DocumentStore) UpsertMany(ctx context.Context, collectionName string, docs []Document) error {
 	tx, err := ds.BeginTransaction(ctx)
 	if err != nil {
-		return errors.Wrapf(err, "failed inserting documents")
+		return errors.Wrapf(err, "failed upserting documents")
 	}
 
 	for _, d := range docs {
 		if err := ds.UpsertOne(ctx, collectionName, d); err != nil {
 			if err := tx.Rollback(); err != nil {
-				return errors.Wrapf(err, "failed inserting documents")
+				return errors.Wrapf(err, "failed upserting documents")
 			}
-			return errors.Wrapf(err, "failed inserting documents")
+			return errors.Wrapf(err, "failed upserting documents")
 		}
 	}
 
 	if err := tx.Commit(); err != nil {
-		return errors.Wrapf(err, "failed inserting documents")
+		return errors.Wrapf(err, "failed upserting documents")
+	}
+
+	return nil
+}
+
+// UpdateOne document of a given collection.
+func (ds *DocumentStore) UpdateOne(ctx context.Context, collectionName string, d Document) error {
+	upsertQuery := fmt.Sprintf(`
+UPDATE "%s" 
+SET data = $1 
+WHERE id = $2
+`, collectionName)
+	updated, err := ds.conn.ExecContext(ctx, upsertQuery, d.data, d.id)
+	if err != nil {
+		return errors.Wrapf(err, "failed updated document %s in collection %s", d.id, collectionName)
+	}
+
+	rowsAffected, err := updated.RowsAffected()
+	if err != nil {
+		return errors.Wrapf(err, "failed updated document %s in collection %s", d.id, collectionName)
+	}
+
+	if rowsAffected != 1 {
+		return errors.Errorf("failed updated document %s in collection %s, document not found", d.id, collectionName)
+	}
+
+	return nil
+}
+
+// UpdateMany documents of a collection.
+func (ds *DocumentStore) UpdateMany(ctx context.Context, collectionName string, docs []Document) error {
+	tx, err := ds.BeginTransaction(ctx)
+	if err != nil {
+		return errors.Wrapf(err, "failed updating documents")
+	}
+
+	for _, d := range docs {
+		if err := ds.UpdateOne(ctx, collectionName, d); err != nil {
+			if err := tx.Rollback(); err != nil {
+				return errors.Wrapf(err, "failed updating documents")
+			}
+			return errors.Wrapf(err, "failed updating documents")
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errors.Wrapf(err, "failed updating documents")
 	}
 
 	return nil
@@ -329,8 +376,8 @@ func (ds *DocumentStore) FindBy(ctx context.Context, collectionName string, quer
 	return documents, nil
 }
 
-// DeleteByID deletes a document from a collection by its ID
-func (ds *DocumentStore) DeleteByID(ctx context.Context, collectionName string, documentID string) error {
+// DeleteOneByID deletes a document from a collection by its ID
+func (ds *DocumentStore) DeleteOneByID(ctx context.Context, collectionName string, documentID string) error {
 	return ds.DeleteBy(ctx, collectionName, "id = $1", documentID)
 }
 
@@ -416,6 +463,14 @@ func (c Collection) UpsertMany(ctx context.Context, docs []Document) error {
 	return c.ds.UpsertMany(ctx, c.name, docs)
 }
 
+func (c Collection) UpdateOne(ctx context.Context, d Document) error {
+	return c.ds.UpdateOne(ctx, c.name, d)
+}
+
+func (c Collection) UpdateMany(ctx context.Context, docs []Document) error {
+	return c.ds.UpdateMany(ctx, c.name, docs)
+}
+
 func (c Collection) FindOneByID(ctx context.Context, documentID string) (doc RecordedDocument, err error) {
 	return c.ds.FindOneByID(ctx, c.name, documentID)
 }
@@ -428,8 +483,8 @@ func (c Collection) FindBy(ctx context.Context, query string, args ...any) (docu
 	return c.ds.FindBy(ctx, c.name, query, args)
 }
 
-func (c Collection) DeleteByID(ctx context.Context, documentID string) error {
-	return c.ds.DeleteByID(ctx, c.name, documentID)
+func (c Collection) DeleteOneByID(ctx context.Context, documentID string) error {
+	return c.ds.DeleteOneByID(ctx, c.name, documentID)
 }
 
 func (c Collection) DeleteBy(ctx context.Context, query string, args ...any) error {
