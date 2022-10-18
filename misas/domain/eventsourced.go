@@ -147,6 +147,11 @@ type StreamIDProviderFromCommand[C command.Command] func(c C) store.StreamID
 // ResponseProvider is responsible for returning a response after handling a command based on an event
 type ResponseProvider[S any] func(s S) any
 
+// NilResponseProvider Implementation of a response provider that simply returns nil.
+func NilResponseProvider[S any](S) any {
+	return nil
+}
+
 // EventStreamCreatingCommandHandler is a utility implementation of a command.Handler that automates
 // the common boilerplate of command handlers that create new streams of events, by saving the resulting events
 // to the event store.
@@ -217,9 +222,7 @@ func EventStreamUpdatingCommandHandler[S any, C command.Command](
 	}
 
 	if responseProvider == nil {
-		responseProvider = func(S) any {
-			return nil
-		}
+		responseProvider = NilResponseProvider[S]
 	}
 
 	return func(ctx context.Context, c command.Command) (any, error) {
