@@ -287,16 +287,16 @@ WHERE id = $2
 `, collectionName)
 	updated, err := ds.conn.ExecContext(ctx, upsertQuery, d.data, d.id)
 	if err != nil {
-		return errors.Wrapf(err, "failed updated document %s in collection %s", d.id, collectionName)
+		return errors.Wrapf(err, "failed updating document %s in collection %s", d.id, collectionName)
 	}
 
 	rowsAffected, err := updated.RowsAffected()
 	if err != nil {
-		return errors.Wrapf(err, "failed updated document %s in collection %s", d.id, collectionName)
+		return errors.Wrapf(err, "failed updating document %s in collection %s", d.id, collectionName)
 	}
 
 	if rowsAffected != 1 {
-		return errors.Errorf("failed updated document %s in collection %s, document not found", d.id, collectionName)
+		return errors.Errorf("failed updating document %s in collection %s, document not found", d.id, collectionName)
 	}
 
 	return nil

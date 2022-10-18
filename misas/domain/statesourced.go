@@ -12,21 +12,4 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package command
-
-import (
-	"context"
-)
-
-// Handler is a service responsible for executing the business logic associated with a given Command.
-type Handler interface {
-	// Handle a Command in a given context.Context and returns the list of changes that occurred as a result, or an error.
-	Handle(ctx context.Context, c Command) (any, error)
-}
-
-// HandlerFunc Allows using a function as a Handler
-type HandlerFunc func(ctx context.Context, c Command) (any, error)
-
-func (cf HandlerFunc) Handle(ctx context.Context, c Command) (any, error) {
-	return cf(ctx, c)
-}
+package domain

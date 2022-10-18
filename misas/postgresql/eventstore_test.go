@@ -39,7 +39,7 @@ func buildEventStore() *EventStore {
 
 	s := NewEventStore("postgres://postgres@localhost:5432/postgres?sslmode=disable", clock.UTCClock{})
 
-	if err := s.OpenConnection(); err != nil {
+	if err := s.Open(ctx); err != nil {
 		panic(err)
 	}
 
@@ -58,7 +58,7 @@ func TestEventStore_OpenConnection(t *testing.T) {
 
 func TestEventStore_CloseConnection(t *testing.T) {
 	st := buildEventStore()
-	err := st.CloseConnection()
+	err := st.Close()
 	assert.NoError(t, err)
 }
 
