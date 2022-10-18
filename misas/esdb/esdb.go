@@ -10,9 +10,12 @@ import (
 	"github.com/pkg/errors"
 	"io"
 	"math"
+	"strings"
 )
 
-// EventStore is an implementation of an event store based on eventstore.com client.
+const GlobalStreamID = "$all"
+
+// EventStore is an implementation of an event store based on an eventstore.com client.
 type EventStore struct {
 	configuration *esdb.Configuration
 	client        *esdb.Client
@@ -50,14 +53,16 @@ func (es *EventStore) Close(context.Context) error {
 	return nil
 }
 
+// Client returns the esdb.Client.
 func (es *EventStore) Client() *esdb.Client {
 	return es.client
 }
 
 func (es *EventStore) GlobalStreamID() store.StreamID {
-	return "$all"
+	return GlobalStreamID
 }
 
+// AppendToStream appends events to a stream. EventStoreDB imposes a limitation that Event Identifiers must be UUIDv4.
 func (es *EventStore) AppendToStream(ctx context.Context, streamID store.StreamID, events []store.EventDescriptor, opts ...store.AppendToStreamOption) error {
 	options := store.BuildAppendToStreamOptions(opts)
 
@@ -120,33 +125,23 @@ func (es *EventStore) ReadFromStream(ctx context.Context, streamID store.StreamI
 		dir = esdb.Backwards
 	}
 
-	var fromPosition esdb.StreamPosition
-	switch options.Position {
-	case store.Start:
-		fromPosition = esdb.Start{}
-	case store.End:
-		fromPosition = esdb.End{}
-	default:
-		fromPosition = esdb.StreamRevision{Value: uint64(options.Position)}
-	}
-
 	var count uint64
 	switch options.MaxCount {
-	// there is currently a bud in esdb, where a value of 0 causes a read error
+	// there is currently a bug in esdb go client, where a value of 0 causes a read error, when it should be accepted
+	// as no max
 	case 0:
 		count = math.MaxUint64
 	default:
 		count = uint64(options.MaxCount)
 	}
 
-	stream, err := es.client.ReadStream(ctx, string(streamID), esdb.ReadStreamOptions{
-		Direction:      dir,
-		From:           fromPosition,
-		ResolveLinkTos: false,
-		Authenticated:  nil,
-		Deadline:       nil,
-		RequiresLeader: false,
-	}, count)
+	var stream *esdb.ReadStream
+	var err error
+	if streamID == es.GlobalStreamID() {
+		stream, err = es.readAll(ctx, options, dir, count)
+	} else {
+		stream, err = es.readStream(ctx, streamID, options, dir, count)
+	}
 	if err != nil {
 		return store.StreamSlice{}, err
 	}
@@ -160,6 +155,11 @@ func (es *EventStore) ReadFromStream(ctx context.Context, streamID store.StreamI
 		evt, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
 			break
+		}
+
+		// Skip esdb system events.
+		if strings.HasPrefix(evt.OriginalEvent().EventType, "$") {
+			continue
 		}
 
 		if err != nil {
@@ -191,6 +191,57 @@ func (es *EventStore) ReadFromStream(ctx context.Context, streamID store.StreamI
 	return slice, nil
 }
 
+func (es *EventStore) readStream(
+	ctx context.Context,
+	streamID store.StreamID,
+	options *store.ReadFromStreamOptions,
+	dir esdb.Direction,
+	count uint64,
+) (*esdb.ReadStream, error) {
+	var fromPosition esdb.StreamPosition
+	switch options.Position {
+	case store.Start:
+		fromPosition = esdb.Start{}
+	case store.End:
+		fromPosition = esdb.End{}
+	default:
+		fromPosition = esdb.StreamRevision{Value: uint64(options.Position)}
+	}
+	return es.client.ReadStream(ctx, string(streamID), esdb.ReadStreamOptions{
+		Direction:      dir,
+		From:           fromPosition,
+		ResolveLinkTos: false,
+		Authenticated:  nil,
+		Deadline:       nil,
+		RequiresLeader: false,
+	}, count)
+}
+
+func (es *EventStore) readAll(
+	ctx context.Context,
+	options *store.ReadFromStreamOptions,
+	dir esdb.Direction,
+	count uint64,
+) (*esdb.ReadStream, error) {
+	var fromPosition esdb.AllPosition
+	switch options.Position {
+	case store.Start:
+		fromPosition = esdb.Start{}
+	case store.End:
+		fromPosition = esdb.End{}
+	default:
+		fromPosition = esdb.Position{Commit: uint64(options.Position)}
+	}
+	return es.client.ReadAll(ctx, esdb.ReadAllOptions{
+		Direction:      dir,
+		From:           fromPosition,
+		ResolveLinkTos: false,
+		Authenticated:  nil,
+		Deadline:       nil,
+		RequiresLeader: false,
+	}, count)
+}
+
 func (es *EventStore) TruncateStream(ctx context.Context, streamID store.StreamID, opts ...store.TruncateStreamOption) error {
 	//TODO implement me
 	panic("implement me")
@@ -207,15 +258,43 @@ func (es *EventStore) SubscribeToStream(ctx context.Context, streamID store.Stre
 }
 
 func (es *EventStore) StreamExists(ctx context.Context, id store.StreamID) (bool, error) {
-	// TODO implement me
-	panic("implement me")
+	ropts := esdb.ReadStreamOptions{
+		From: esdb.Revision(10),
+	}
+
+	stream, err := es.client.ReadStream(ctx, string(id), ropts, 10)
+	if err != nil {
+		return false, errors.Wrapf(err, "failed checking if stream %s exists", id)
+	}
+
+	defer stream.Close()
+
+	for {
+		_, err := stream.Recv()
+		if err, ok := esdb.FromError(err); !ok {
+			if err.Code() == esdb.ErrorCodeResourceNotFound {
+				return false, nil
+			}
+			return false, errors.Wrapf(err, "failed checking if stream %s exists", id)
+		}
+		return true, nil
+	}
 }
 
+// GetStream this method is not supported by the esdb client.
 func (es *EventStore) GetStream(ctx context.Context, id store.StreamID) (store.Stream, error) {
-	//TODO implement me
-	panic("implement me")
+	exists, err := es.StreamExists(ctx, id)
+	if err != nil {
+		return store.Stream{}, errors.Wrapf(err, "failed getting information for stream %s", id)
+	}
+	if !exists {
+		return store.Stream{}, store.StreamNotFoundError{StreamID: id}
+	}
+
+	panic("method not supported by client")
 }
 
+// Clear is not supported by the esdb client.
 func (es *EventStore) Clear(ctx context.Context) error {
-	return nil
+	panic("method not supported by client")
 }

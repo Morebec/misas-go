@@ -62,7 +62,7 @@ type EventStore interface {
 	StreamExists(ctx context.Context, id StreamID) (bool, error)
 
 	// GetStream Returns a given stream.
-	// If the stream does not exist it is returned as an error.
+	// If the stream does not exist it is returned as store.StreamNotFoundError.
 	GetStream(ctx context.Context, id StreamID) (Stream, error)
 
 	// Clear this event store

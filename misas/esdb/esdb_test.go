@@ -45,10 +45,6 @@ func buildEventStore() *EventStore {
 		panic(err)
 	}
 
-	if err := s.Clear(ctx); err != nil {
-		panic(err)
-	}
-
 	return s
 }
 
@@ -67,7 +63,8 @@ func TestEventStore_CloseConnection(t *testing.T) {
 func TestEventStore_AppendToStream(t *testing.T) {
 	st := buildEventStore()
 
-	streamID := store.StreamID("unit_test")
+	streamID := store.StreamID("esdb-unit-test" + uuid.NewString())
+
 	eventId1 := store.EventID(uuid.NewString())
 	eventId2 := store.EventID(uuid.NewString())
 	eventId3 := store.EventID(uuid.NewString())
@@ -76,19 +73,19 @@ func TestEventStore_AppendToStream(t *testing.T) {
 		{
 			ID:       eventId1,
 			TypeName: esdbSQLUnitTestPassedEvent{}.TypeName(),
-			Payload:  store.EventPayload{"TestName": "AppendToStream"},
+			Payload:  store.EventPayload{"TestName": "AppendToStream-event-1"},
 			Metadata: misas.Metadata{"hello": "world"},
 		},
 		{
 			ID:       eventId2,
 			TypeName: esdbSQLUnitTestPassedEvent{}.TypeName(),
-			Payload:  store.EventPayload{"TestName": "AppendToStream"},
+			Payload:  store.EventPayload{"TestName": "AppendToStream-event-2"},
 			Metadata: misas.Metadata{},
 		},
 		{
 			ID:       eventId3,
 			TypeName: esdbSQLUnitTestPassedEvent{}.TypeName(),
-			Payload:  store.EventPayload{"TestName": "AppendToStream"},
+			Payload:  store.EventPayload{"TestName": "AppendToStream-event-3"},
 			Metadata: misas.Metadata{},
 		},
 	}, store.WithOptimisticConcurrencyCheckDisabled())
@@ -108,22 +105,26 @@ func TestEventStore_AppendToStream(t *testing.T) {
 func TestEventStore_ReadFromStream(t *testing.T) {
 	st := buildEventStore()
 
-	streamID := store.StreamID("unit_test")
+	streamID := store.StreamID("esdb-unit-test" + uuid.NewString())
+	eventId1 := store.EventID(uuid.NewString())
+	eventId2 := store.EventID(uuid.NewString())
+	eventId3 := store.EventID(uuid.NewString())
+
 	err := st.AppendToStream(context.Background(), streamID, []store.EventDescriptor{
 		{
-			ID:       "event#1",
+			ID:       eventId1,
 			TypeName: esdbSQLUnitTestPassedEvent{}.TypeName(),
 			Payload:  store.EventPayload{"TestName": "ReadFromStream"},
 			Metadata: misas.Metadata{},
 		},
 		{
-			ID:       "event#2",
+			ID:       eventId2,
 			TypeName: esdbSQLUnitTestPassedEvent{}.TypeName(),
 			Payload:  store.EventPayload{"TestName": "ReadFromStream"},
 			Metadata: misas.Metadata{},
 		},
 		{
-			ID:       "event#3",
+			ID:       eventId3,
 			TypeName: esdbSQLUnitTestPassedEvent{}.TypeName(),
 			Payload:  store.EventPayload{"TestName": "ReadFromStream"},
 			Metadata: misas.Metadata{},
@@ -136,45 +137,45 @@ func TestEventStore_ReadFromStream(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Len(t, events.Descriptors, 3)
 	assert.Equal(t, events.First().TypeName, esdbSQLUnitTestPassedEvent{}.TypeName())
-	assert.Equal(t, events.First().ID, store.EventID("event#1"))
+	assert.Equal(t, events.First().ID, store.EventID(eventId1))
 	assert.Equal(t, events.Last().TypeName, esdbSQLUnitTestPassedEvent{}.TypeName())
-	assert.Equal(t, events.Last().ID, store.EventID("event#3"))
+	assert.Equal(t, events.Last().ID, store.EventID(eventId3))
 
-	// Read forward global from start
-	events, err = st.ReadFromStream(context.Background(), st.GlobalStreamID(), store.FromStart(), store.InForwardDirection())
+	// Read forward global from end
+	events, err = st.ReadFromStream(context.Background(), st.GlobalStreamID(), store.FromStart(), store.InBackwardDirection(), store.WithMaxCount(3))
 	assert.Nil(t, err)
 	assert.Len(t, events.Descriptors, 3)
 	assert.Equal(t, events.First().TypeName, esdbSQLUnitTestPassedEvent{}.TypeName())
-	assert.Equal(t, events.First().ID, store.EventID("event#1"))
+	assert.Equal(t, events.First().ID, store.EventID(eventId1))
 	assert.Equal(t, events.Last().TypeName, esdbSQLUnitTestPassedEvent{}.TypeName())
-	assert.Equal(t, events.Last().ID, store.EventID("event#3"))
+	assert.Equal(t, events.Last().ID, store.EventID(eventId3))
 
 	// Read forward stream from position
 	events, err = st.ReadFromStream(context.Background(), streamID, store.From(0), store.InForwardDirection())
 	assert.Nil(t, err)
 	assert.Len(t, events.Descriptors, 2)
 	assert.Equal(t, events.First().TypeName, esdbSQLUnitTestPassedEvent{}.TypeName())
-	assert.Equal(t, events.First().ID, store.EventID("event#2"))
+	assert.Equal(t, events.First().ID, store.EventID(eventId2))
 	assert.Equal(t, events.Last().TypeName, esdbSQLUnitTestPassedEvent{}.TypeName())
-	assert.Equal(t, events.Last().ID, store.EventID("event#3"))
+	assert.Equal(t, events.Last().ID, store.EventID(eventId3))
 
 	// Read backwards from stream
 	events, err = st.ReadFromStream(context.Background(), streamID, store.FromEnd(), store.InBackwardDirection())
 	assert.Nil(t, err)
 	assert.Len(t, events.Descriptors, 3)
 	assert.Equal(t, events.First().TypeName, esdbSQLUnitTestPassedEvent{}.TypeName())
-	assert.Equal(t, events.First().ID, store.EventID("event#3"))
+	assert.Equal(t, events.First().ID, store.EventID(eventId3))
 	assert.Equal(t, events.Last().TypeName, esdbSQLUnitTestPassedEvent{}.TypeName())
-	assert.Equal(t, events.Last().ID, store.EventID("event#1"))
+	assert.Equal(t, events.Last().ID, store.EventID(eventId1))
 
 	// Read backwards global
-	events, err = st.ReadFromStream(context.Background(), st.GlobalStreamID(), store.FromEnd(), store.InBackwardDirection())
+	events, err = st.ReadFromStream(context.Background(), st.GlobalStreamID(), store.FromEnd(), store.InBackwardDirection(), store.WithMaxCount(3))
 	assert.Nil(t, err)
 	assert.Len(t, events.Descriptors, 3)
 	assert.Equal(t, events.First().TypeName, esdbSQLUnitTestPassedEvent{}.TypeName())
-	assert.Equal(t, events.First().ID, store.EventID("event#3"))
+	assert.Equal(t, events.First().ID, store.EventID(eventId3))
 	assert.Equal(t, events.Last().TypeName, esdbSQLUnitTestPassedEvent{}.TypeName())
-	assert.Equal(t, events.Last().ID, store.EventID("event#1"))
+	assert.Equal(t, events.Last().ID, store.EventID(eventId1))
 
 	// TODO Test event type name filter.
 }
@@ -182,7 +183,7 @@ func TestEventStore_ReadFromStream(t *testing.T) {
 func TestEventStore_Clear(t *testing.T) {
 	st := buildEventStore()
 
-	streamID := store.StreamID("unit_test")
+	streamID := store.StreamID("esdb-unit-test" + uuid.NewString())
 	err := st.AppendToStream(context.Background(), streamID, []store.EventDescriptor{
 		{
 			ID:       store.EventID(uuid.New().String()),
@@ -203,7 +204,7 @@ func TestEventStore_Clear(t *testing.T) {
 func TestEventStore_DeleteStream(t *testing.T) {
 	st := buildEventStore()
 
-	streamID := store.StreamID("unit_test")
+	streamID := store.StreamID("esdb-unit-test" + uuid.NewString())
 	err := st.AppendToStream(context.Background(), streamID, []store.EventDescriptor{
 		{
 			ID:       store.EventID(uuid.New().String()),
@@ -224,7 +225,7 @@ func TestEventStore_DeleteStream(t *testing.T) {
 func TestEventStore_GetStream(t *testing.T) {
 	st := buildEventStore()
 
-	streamID := store.StreamID("unit_test")
+	streamID := store.StreamID("esdb-unit-test" + uuid.NewString())
 
 	_, err := st.GetStream(context.Background(), streamID)
 	assert.Error(t, err)
@@ -251,7 +252,7 @@ func TestEventStore_GetStream(t *testing.T) {
 func TestEventStore_StreamExists(t *testing.T) {
 	st := buildEventStore()
 
-	streamID := store.StreamID("unit_test")
+	streamID := store.StreamID("esdb-unit-test" + uuid.NewString())
 
 	exists, err := st.StreamExists(context.Background(), streamID)
 	assert.NoError(t, err)
@@ -274,22 +275,25 @@ func TestEventStore_StreamExists(t *testing.T) {
 
 func TestEventStore_SubscribeToStream(t *testing.T) {
 	st := buildEventStore()
-	streamID := store.StreamID("unit_test")
+	streamID := store.StreamID("esdb-unit-test" + uuid.NewString())
+	eventId1 := store.EventID(uuid.NewString())
+	eventId2 := store.EventID(uuid.NewString())
+	eventId3 := store.EventID(uuid.NewString())
 	err := st.AppendToStream(context.Background(), streamID, []store.EventDescriptor{
 		{
-			ID:       "event#1",
+			ID:       eventId1,
 			TypeName: esdbSQLUnitTestPassedEvent{}.TypeName(),
 			Payload:  store.EventPayload{"TestName": "SubscribeToStream"},
 			Metadata: misas.Metadata{},
 		},
 		{
-			ID:       "event#2",
+			ID:       eventId2,
 			TypeName: esdbSQLUnitTestPassedEvent{}.TypeName(),
 			Payload:  store.EventPayload{"TestName": "SubscribeToStream"},
 			Metadata: misas.Metadata{},
 		},
 		{
-			ID:       "event#3",
+			ID:       eventId3,
 			TypeName: esdbSQLUnitTestPassedEvent{}.TypeName(),
 			Payload:  store.EventPayload{"TestName": "SubscribeToStream"},
 			Metadata: misas.Metadata{},
@@ -303,9 +307,10 @@ func TestEventStore_SubscribeToStream(t *testing.T) {
 	time.Sleep(1 * time.Second)
 
 	// New event
+	eventId4 := store.EventID(uuid.NewString())
 	err = st.AppendToStream(context.Background(), streamID, []store.EventDescriptor{
 		{
-			ID:       "event#4",
+			ID:       eventId4,
 			TypeName: esdbSQLUnitTestPassedEvent{}.TypeName(),
 			Payload:  store.EventPayload{"TestName": "SubscribeToStream"},
 			Metadata: misas.Metadata{},
@@ -314,7 +319,7 @@ func TestEventStore_SubscribeToStream(t *testing.T) {
 	assert.NoError(t, err)
 
 	e := <-subscription.EventChannel()
-	assert.Equal(t, store.EventID("event#4"), e.ID)
+	assert.Equal(t, store.EventID(eventId4), e.ID)
 
 	err = subscription.Close()
 	assert.NoError(t, err)
@@ -323,22 +328,25 @@ func TestEventStore_SubscribeToStream(t *testing.T) {
 func TestEventStore_TruncateStream(t *testing.T) {
 	st := buildEventStore()
 
-	streamID := store.StreamID("unit_test")
+	streamID := store.StreamID("esdb-unit-test" + uuid.NewString())
+	eventId1 := store.EventID(uuid.NewString())
+	eventId2 := store.EventID(uuid.NewString())
+	eventId3 := store.EventID(uuid.NewString())
 	err := st.AppendToStream(context.Background(), streamID, []store.EventDescriptor{
 		{
-			ID:       "event#1",
+			ID:       eventId1,
 			TypeName: esdbSQLUnitTestPassedEvent{}.TypeName(),
 			Payload:  store.EventPayload{"TestName": "TruncateStream"},
 			Metadata: misas.Metadata{},
 		},
 		{
-			ID:       "event#2",
+			ID:       eventId2,
 			TypeName: esdbSQLUnitTestPassedEvent{}.TypeName(),
 			Payload:  store.EventPayload{"TestName": "TruncateStream"},
 			Metadata: misas.Metadata{},
 		},
 		{
-			ID:       "event#3",
+			ID:       eventId3,
 			TypeName: esdbSQLUnitTestPassedEvent{}.TypeName(),
 			Payload:  store.EventPayload{"TestName": "TruncateStream"},
 			Metadata: misas.Metadata{},
