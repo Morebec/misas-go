@@ -31,13 +31,23 @@ type Bus interface {
 	Send(ctx context.Context, c Command) (any, error)
 }
 
+// InMemoryBusOption represents an option to configure the behaviour of the InMemoryBus at construction time.
 type InMemoryBusOption func(bus *InMemoryBus)
 
+// WithHandler allows registering a Command Handler to a Command for the InMemoryBus.
+func WithHandler(ct TypeName, h Handler) InMemoryBusOption {
+	return func(bus *InMemoryBus) {
+		bus.RegisterHandler(ct, h)
+	}
+}
+
 // InMemoryBus is an implementation of a command.Bus that sends command to handlers in memory.
+// The processing of the commands is performed synchronously in the same memory space.
 type InMemoryBus struct {
 	handlers map[TypeName]Handler
 }
 
+// NewInMemoryBus allows constructing an InMemoryBus.
 func NewInMemoryBus(opts ...InMemoryBusOption) *InMemoryBus {
 	bus := &InMemoryBus{
 		handlers: map[TypeName]Handler{},
@@ -84,11 +94,5 @@ func (cb *InMemoryBus) resolveHandler(c Command) (Handler, error) {
 		return nil, errors.Errorf("no handler found for command \"%s\"", c.TypeName())
 	} else {
 		return handler, nil
-	}
-}
-
-func WithHandler(ct TypeName, h Handler) InMemoryBusOption {
-	return func(bus *InMemoryBus) {
-		bus.RegisterHandler(ct, h)
 	}
 }

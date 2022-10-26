@@ -26,8 +26,24 @@ import (
 )
 
 func ExampleSystem_Run() {
-	utcClock := clock.NewUTCClock()
+	// Defining a typed configuration struct
+	type ExampleConfiguration struct {
+		DbHost string
+	}
 
+	// This configuration can be loaded from a file or env variables.
+	conf := ExampleConfiguration{
+		DbHost: "host",
+	}
+
+	// Here's an example subsystem configuration that relies on the typed configuration.
+	ExampleSubsystem := func(conf ExampleConfiguration) SubsystemConfigurator {
+		return func(m *Subsystem) {
+
+		}
+	}
+
+	utcClock := clock.NewUTCClock()
 	s := New(
 		WithInformation(Information{
 			Name:    "unit_test",
@@ -77,7 +93,9 @@ func ExampleSystem_Run() {
 			WithEventStoreInstrumentation(),
 		),
 
-		WithSubsystems(),
+		WithSubsystems(
+			ExampleSubsystem(conf),
+		),
 	)
 
 	mainEntryPoint := NewEntryPoint(

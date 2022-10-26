@@ -16,7 +16,9 @@ package clock
 
 import "time"
 
+// Clock represents an abstraction over a service responsible for providing a system with the current date and time.
 type Clock interface {
+	// Now returns the current date and time according to the clock.
 	Now() time.Time
 }
 
@@ -24,6 +26,7 @@ type Clock interface {
 type UTCClock struct {
 }
 
+// NewUTCClock allows constructing a UTCClock.
 func NewUTCClock() *UTCClock {
 	return &UTCClock{}
 }
@@ -32,15 +35,17 @@ func (s UTCClock) Now() time.Time {
 	return time.Now().UTC()
 }
 
-// FixedClock Implementation of a Clock that always returns a Fixed date.
+// FixedClock is an implementation of a Clock that always returns a predefined fixed date.
 type FixedClock struct {
 	CurrentDate time.Time
 }
 
+// NewFixedClock allows constructing a FixedClock.
 func NewFixedClock(currentDate time.Time) *FixedClock {
 	return &FixedClock{CurrentDate: currentDate}
 }
 
+// Now returns the fixed date of the FixedClock.
 func (f FixedClock) Now() time.Time {
 	return f.CurrentDate
 }
@@ -50,6 +55,7 @@ type OffsetClock struct {
 	Offset time.Duration
 }
 
+// NewOffsetClock allows constructing an OffsetClock.
 func NewOffsetClock(offset time.Duration) *OffsetClock {
 	return &OffsetClock{Offset: offset}
 }
