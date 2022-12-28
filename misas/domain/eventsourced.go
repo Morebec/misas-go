@@ -18,28 +18,32 @@ import (
 	"context"
 	"github.com/google/uuid"
 	"github.com/morebec/misas-go/misas"
-	"github.com/morebec/misas-go/misas/command"
 	"github.com/morebec/misas-go/misas/event"
 	"github.com/morebec/misas-go/misas/event/store"
 	"github.com/pkg/errors"
 )
 
+type EventSourcedAggregate interface {
+	Apply(e event.Event)
+}
+
 // Version represents the Version of an event sourced aggregate for concurrency checking.
 type Version store.StreamVersion
 
-// InitialVersion represents the initial version of an aggregate.
+// InitialVersion represents the initial version of an aggregate at creation time.
 const InitialVersion = Version(store.InitialVersion)
 
-// Incremented Returns the value of this version incremented by one.
+// Incremented Returns the value of a version incremented by one.
 func (v Version) Incremented() Version {
 	return v + 1
 }
 
 // EventStoreRepository is a utility service responsible for storing and retrieving event.Event into a store.EventStore.
-// it can be used as a base to implement repositories.
+// it can be used as a base to implement repositories for specific aggregates types.
 type EventStoreRepository struct {
-	eventStore       store.EventStore
-	eventConverter   *store.EventConverter
+	eventStore     store.EventStore
+	eventConverter *store.EventConverter
+	// Prefix to add to the event stream ID.
 	streamPrefix     string
 	metadataProvider func(e event.Event) misas.Metadata
 }
@@ -47,6 +51,7 @@ type EventStoreRepository struct {
 // EventMetadataProvider represents a function responsible for providing metadata to events.
 type EventMetadataProvider func(e event.Event) misas.Metadata
 
+// NewEventStoreRepository allows creating an EventStoreRepository.
 func NewEventStoreRepository(
 	eventStore store.EventStore,
 	eventConverter *store.EventConverter,
@@ -67,7 +72,8 @@ func NewEventStoreRepository(
 	}
 }
 
-// Save a list of events to a given stream
+// Save a list of events to a given stream. If the EventStoreRepository uses a prefix, it will be appended to the value
+// provided as an argument to this function call.
 func (r EventStoreRepository) Save(ctx context.Context, streamID store.StreamID, events event.List, version Version) error {
 	streamID = r.prefixStream(streamID)
 	operationFailed := func(err error) error {
@@ -98,7 +104,8 @@ func (r EventStoreRepository) Save(ctx context.Context, streamID store.StreamID,
 	return nil
 }
 
-// Load an event.List from a given stream with store.StreamID.
+// Load an event.List from a given stream with store.StreamID. If the EventStoreRepository uses a prefix, it will be appended to the value
+// provided as an argument to this function call.
 func (r EventStoreRepository) Load(ctx context.Context, streamID store.StreamID) (event.List, Version, error) {
 	streamID = r.prefixStream(streamID)
 	operationFailed := func(err error) error {
@@ -128,137 +135,4 @@ func (r EventStoreRepository) Load(ctx context.Context, streamID store.StreamID)
 // prefixes a stream with the stream prefix of this repository.
 func (r EventStoreRepository) prefixStream(streamID store.StreamID) store.StreamID {
 	return store.StreamID(r.streamPrefix + string(streamID))
-}
-
-// StateProjector is responsible for projecting a event.Event onto a state.
-type StateProjector[S any] func(s S, e event.Event) S
-
-// StateHandler is responsible for handling a command for a given state and returning an event.List as a result
-// of any doable state changes.
-type StateHandler[S any, C command.Command] func(s S, c C) (event.List, error)
-
-// StreamIDProviderFromState is responsible for returning the ID of the stream associated with a given state.
-type StreamIDProviderFromState[S any] func(s S) store.StreamID
-
-// StreamIDProviderFromCommand is responsible for returning the ID of the stream associated with a given state
-// for a given command.Command
-type StreamIDProviderFromCommand[C command.Command] func(c C) store.StreamID
-
-// ResponseProvider is responsible for returning a response after handling a command based on an event
-type ResponseProvider[S any] func(s S) any
-
-// NilResponseProvider Implementation of a response provider that simply returns nil.
-func NilResponseProvider[S any](S) any {
-	return nil
-}
-
-// EventStreamCreatingCommandHandler is a utility implementation of a command.Handler that automates
-// the common boilerplate of command handlers that create new streams of events, by saving the resulting events
-// to the event store.
-func EventStreamCreatingCommandHandler[S any, C command.Command](
-	repository EventStoreRepository,
-	projector StateProjector[S],
-	handler StateHandler[S, C],
-	streamIdProvider StreamIDProviderFromState[S],
-	responseProvider ResponseProvider[S],
-) command.HandlerFunc {
-	if projector == nil {
-		panic("projector cannot be nil")
-	}
-
-	if streamIdProvider == nil {
-		panic("streamIdProvider cannot be nil")
-	}
-
-	if handler == nil {
-		panic("handler cannot be nil")
-	}
-
-	return func(ctx context.Context, c command.Command) (any, error) {
-		cmd := c.(C)
-		var s S
-
-		// Handle Command
-		events, err := handler(s, cmd)
-		if err != nil {
-			return nil, err
-		}
-
-		// apply event to state
-		for _, e := range events {
-			s = projector(s, e)
-		}
-
-		// save events to repository
-		streamID := streamIdProvider(s)
-		if err := repository.Save(ctx, store.StreamID(streamID), events, InitialVersion); err != nil {
-			return nil, err
-		}
-
-		return responseProvider(s), nil
-	}
-}
-
-// EventStreamUpdatingCommandHandler is a utility implementation of a command.Handler that automates
-// the common boilerplate of command handlers that update streams of events, by saving the resulting events
-// to the event store.
-func EventStreamUpdatingCommandHandler[S any, C command.Command](
-	repository EventStoreRepository,
-	projector StateProjector[S],
-	handler StateHandler[S, C],
-	streamIdProvider StreamIDProviderFromCommand[C],
-	responseProvider ResponseProvider[S],
-) command.HandlerFunc {
-	if projector == nil {
-		panic("projector cannot be nil")
-	}
-
-	if streamIdProvider == nil {
-		panic("streamIdProvider cannot be nil")
-	}
-
-	if handler == nil {
-		panic("handler cannot be nil")
-	}
-
-	if responseProvider == nil {
-		responseProvider = NilResponseProvider[S]
-	}
-
-	return func(ctx context.Context, c command.Command) (any, error) {
-		cmd := c.(C)
-		streamID := streamIdProvider(cmd)
-		version := InitialVersion
-		var s S
-
-		// Load events
-		loaded, v, err := repository.Load(ctx, streamID)
-		if err != nil {
-			return nil, err
-		}
-		version = v
-
-		// Load State from events.
-		for _, e := range loaded {
-			s = projector(s, e)
-		}
-
-		// Handle Command
-		events, err := handler(s, cmd)
-		if err != nil {
-			return nil, err
-		}
-
-		// apply event on state
-		for _, e := range events {
-			s = projector(s, e)
-		}
-
-		// save events to repository
-		if err := repository.Save(ctx, streamID, events, version); err != nil {
-			return nil, err
-		}
-
-		return responseProvider(s), nil
-	}
 }

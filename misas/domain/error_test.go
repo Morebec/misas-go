@@ -23,7 +23,8 @@ import (
 
 func TestNew(t *testing.T) {
 	type args struct {
-		opts []ErrorOption
+		typeName ErrorTypeName
+		opts     []ErrorOption
 	}
 	cause := errors.New("there was an error")
 
@@ -35,8 +36,8 @@ func TestNew(t *testing.T) {
 		{
 			name: "new",
 			args: args{
-				[]ErrorOption{
-					WithTypeName("unit_test_error"),
+				typeName: "unit_test_error",
+				opts: []ErrorOption{
 					WithMessage("there was an error in the unit test"),
 					WithData(map[string]any{
 						"id": "unit_test_1",
@@ -55,8 +56,8 @@ func TestNew(t *testing.T) {
 		{
 			name: "new with cause",
 			args: args{
-				[]ErrorOption{
-					WithTypeName("unit_test_error"),
+				typeName: "unit_test_error",
+				opts: []ErrorOption{
 					WithMessage("there was an error in the unit test"),
 					WithCause(cause),
 				},
@@ -70,7 +71,7 @@ func TestNew(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewError(tt.args.opts...); !reflect.DeepEqual(got, tt.want) {
+			if got := NewError(tt.args.typeName, tt.args.opts...); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("NewError() = %v, want %v", got, tt.want)
 			}
 		})
@@ -90,7 +91,7 @@ func TestIsDomainError(t *testing.T) {
 			name: "with actual domain error",
 			args: args{
 				err: NewError(
-					WithTypeName("unit_test_error"),
+					"unit_test_error",
 					WithMessage("there was an error in the unit test"),
 				),
 			},
@@ -127,7 +128,7 @@ func TestIsDomainErrorWithTypeName(t *testing.T) {
 			name: "with actual domain error",
 			args: args{
 				err: NewError(
-					WithTypeName("unit_test_error"),
+					"unit_test_error",
 					WithMessage("there was an error in the unit test"),
 				),
 				t: "unit_test_error",
@@ -138,7 +139,7 @@ func TestIsDomainErrorWithTypeName(t *testing.T) {
 			name: "with domain error but wrong type",
 			args: args{
 				err: NewError(
-					WithTypeName("unit_test_error"),
+					"unit_test_error",
 					WithMessage("there was an error in the unit test"),
 				),
 				t: "wrong_type",
@@ -237,9 +238,9 @@ func TestIsNotFoundDomainError(t *testing.T) {
 			name: "with tag not found should return true",
 			args: args{
 				err: NewError(
-					WithTypeName("unit_test_error"),
+					"unit_test_error",
 					WithMessage("there was an error in the unit test"),
-					WithTag(NotFoundTag),
+					WithTags(NotFoundTag),
 				),
 			},
 			want: true,
@@ -248,7 +249,7 @@ func TestIsNotFoundDomainError(t *testing.T) {
 			name: "without tag not found should return false",
 			args: args{
 				err: NewError(
-					WithTypeName("unit_test_error"),
+					"unit_test_error",
 					WithMessage("there was an error in the unit test"),
 				),
 			},
@@ -257,7 +258,23 @@ func TestIsNotFoundDomainError(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equalf(t, tt.want, IsNotFoundDomainError(tt.args.err), "IsNotFoundDomainError(%v)", tt.args.err)
+			assert.Equalf(t, tt.want, IsNotFoundError(tt.args.err), "IsNotFoundError(%v)", tt.args.err)
 		})
 	}
+}
+
+func TestWithMessagef(t *testing.T) {
+	err := NewError(
+		"unit_test_error",
+		WithMessagef("unit test %s succeeded", "WithMessagef"),
+	)
+	assert.Equal(t, "unit test WithMessagef succeeded", err.message)
+}
+
+func TestWithMessage(t *testing.T) {
+	err := NewError(
+		"unit_test_error",
+		WithMessage("unit test succeeded"),
+	)
+	assert.Equal(t, "unit test succeeded", err.message)
 }

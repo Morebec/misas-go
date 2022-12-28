@@ -21,6 +21,15 @@ import (
 // ErrorTypeName represents the kind of error in a business language specific way.
 type ErrorTypeName string
 
+// NotFoundTag is an error tag indicating that an error represents a resource that was not found when it was expected to be.
+const NotFoundTag = "not_found"
+
+// ValidationErrorTag is an error tag that indicates an error represents a validation error.
+const ValidationErrorTag = "validation_error"
+
+// AlreadyExistsTag is an error tag indicating that an error was caused by a resource existing when it wasn't expected to be.
+const AlreadyExistsTag = "already_exists"
+
 // IsDomainError Indicates if a given error is a Domain Error.
 func IsDomainError(err error) bool {
 	_, ok := err.(Error)
@@ -36,32 +45,33 @@ func IsDomainErrorWithTypeName(err error, t ErrorTypeName) bool {
 	return err.(Error).typeName == t
 }
 
-const NotFoundTag = "not_found"
-const ValidationErrorTag = "validation_error"
-const AlreadyExistsTag = "already_exists"
+// IsNotFoundError indicates if an error has a NotFoundTag.
+func IsNotFoundError(err error) bool {
+	return HasErrorTag(err, NotFoundTag)
+}
 
-func IsNotFoundDomainError(err error) bool {
+// IsValidationError indicates if an error has a ValidationErrorTag.
+func IsValidationError(err error) bool {
+	return HasErrorTag(err, ValidationErrorTag)
+}
+
+// HasErrorTag Indicates if an error has an error tag.
+func HasErrorTag(err error, tag string) bool {
 	if !IsDomainError(err) {
 		return false
 	}
 
-	return err.(Error).HasTag(NotFoundTag)
+	return err.(Error).HasTag(tag)
 }
 
 // NewError Allows creating a new Error using a type and a message.
-func NewError(opts ...ErrorOption) Error {
-	err := Error{}
-
-	if len(opts) == 0 {
-		panic("invalid call to domain.NewError: no options provided")
+func NewError(t ErrorTypeName, opts ...ErrorOption) Error {
+	err := Error{
+		typeName: t,
 	}
 
 	for _, opt := range opts {
 		err = opt(err)
-	}
-
-	if err.message == "" {
-		panic("invalid call to domain.NewError: no message provided")
 	}
 
 	if err.typeName == "" {
@@ -98,10 +108,12 @@ func (d Error) TypeName() ErrorTypeName {
 	return d.typeName
 }
 
+// Data returns the contextual data of this error.
 func (d Error) Data() map[string]any {
 	return d.data
 }
 
+// Tags returns the tags of this error.
 func (d Error) Tags() []string {
 	return d.tags
 }
@@ -110,6 +122,7 @@ func (d Error) Unwrap() error {
 	return d.cause
 }
 
+// HasTag indicates if an error has a certain tag.
 func (d Error) HasTag(tag string) bool {
 	for _, t := range d.tags {
 		if t == tag {
@@ -122,14 +135,6 @@ func (d Error) HasTag(tag string) bool {
 
 type ErrorOption func(e Error) Error
 
-// WithTypeName allows specifying the type of an error.
-func WithTypeName(t ErrorTypeName) ErrorOption {
-	return func(e Error) Error {
-		e.typeName = t
-		return e
-	}
-}
-
 // WithMessage allows specifying the message of an error.
 // The message of an error should be for additional debug information that is useful for developers.
 // If an error should be communicated to the user, the error's ErrorTypeName and Data should be used instead.
@@ -141,12 +146,12 @@ func WithMessage(message string) ErrorOption {
 }
 
 // WithMessagef allows specifying the message of an error using a formatted string.
-func WithMessagef(format string, a ...any) ErrorOption {
-	return WithMessage(fmt.Sprintf(format, a...))
+func WithMessagef(format string, params ...any) ErrorOption {
+	return WithMessage(fmt.Sprintf(format, params...))
 }
 
 // WithData allows specifying additional contextual data about an error. For example, in the case of a not found error,
-// the ID of the entity that was not fond could be provided as additional data.
+// the ID of the entity that was not found could be provided as additional data.
 func WithData(data map[string]any) ErrorOption {
 	return func(e Error) Error {
 		if e.data == nil {
@@ -162,7 +167,7 @@ func WithData(data map[string]any) ErrorOption {
 	}
 }
 
-// WithCause allows specifying the cause of a given error.
+// WithCause allows specifying the underlying cause of a given error.
 func WithCause(err error) ErrorOption {
 	return func(e Error) Error {
 		e.cause = err
@@ -170,13 +175,7 @@ func WithCause(err error) ErrorOption {
 	}
 }
 
-func WithTag(tag string) ErrorOption {
-	return func(e Error) Error {
-		e.tags = append(e.tags, tag)
-		return e
-	}
-}
-
+// WithTags WithTag allows specifying that an error has specific tags.
 func WithTags(tags ...string) ErrorOption {
 	return func(e Error) Error {
 		e.tags = append(e.tags, tags...)

@@ -21,16 +21,14 @@ const InvalidQuery ErrorTypeName = "invalid_query"
 
 // NewInvalidCommandError helper function allowing to create a new Error with InvalidCommand as its ErrorTypeName and provided options
 func NewInvalidCommandError(c command.Command, opts ...ErrorOption) Error {
-	return NewError(append(opts,
-		WithTypeName(InvalidCommand),
+	return NewError(InvalidCommand, append(opts,
 		WithMessage("invalid command"),
 	)...)
 }
 
 // NewInvalidQueryError helper function allowing to create a new Error with InvalidQuery as its ErrorTypeName and provided options
 func NewInvalidQueryError(opts ...ErrorOption) Error {
-	return NewError(append(opts,
-		WithTypeName(InvalidQuery),
+	return NewError(InvalidQuery, append(opts,
 		WithMessage("invalid query"),
 	)...)
 }
