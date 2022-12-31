@@ -45,16 +45,16 @@ func (cb *InMemoryBus) RegisterHandler(t TypeName, h Handler) {
 // Send a Query to its Handler for processing
 func (cb *InMemoryBus) Send(ctx context.Context, q Query) (any, error) {
 	// Handle
-	return cb.handleQuery(q, ctx)
+	return cb.handleQuery(ctx, q)
 }
 
-func (cb *InMemoryBus) handleQuery(q Query, ctx context.Context) (any, error) {
+func (cb *InMemoryBus) handleQuery(ctx context.Context, q Query) (any, error) {
 	handler, err := cb.resolveHandler(q)
 	if err != nil {
 		// Query should always be resolved! This is a critical error!
 		panic(errors.Wrapf(err, "failed handling query %s", q.TypeName()))
 	}
-	result, err := handler.Handle(q, ctx)
+	result, err := handler.Handle(ctx, q)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed handling query %s", q.TypeName())
 	}

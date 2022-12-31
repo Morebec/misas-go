@@ -29,8 +29,7 @@ type Endpoint func(r chi.Router)
 
 func HomeEndpoint(r chi.Router) {
 	r.Get("/", func(writer http.ResponseWriter, request *http.Request) {
-		request.
-			writer.WriteHeader(500)
+		writer.WriteHeader(500)
 		render.JSON(writer, request, NewSuccessResponse(nil))
 	})
 }

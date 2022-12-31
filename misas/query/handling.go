@@ -19,12 +19,12 @@ import "context"
 // Handler is a service responsible for executing the business logic associated with a given Query.
 type Handler interface {
 	// Handle a Query in a given context and returns the list of changes that occurred as a result, or an error.
-	Handle(q Query, ctx context.Context) (any, error)
+	Handle(ctx context.Context, q Query) (any, error)
 }
 
 // HandlerFunc Allows using a function as a Handler
-type HandlerFunc func(q Query, ctx context.Context) (any, error)
+type HandlerFunc func(ctx context.Context, q Query) (any, error)
 
-func (qf HandlerFunc) Handle(q Query, ctx context.Context) (any, error) {
-	return qf(q, ctx)
+func (qf HandlerFunc) Handle(ctx context.Context, q Query) (any, error) {
+	return qf(ctx, q)
 }

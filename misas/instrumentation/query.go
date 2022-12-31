@@ -31,11 +31,11 @@ type OpenTelemetryQueryBusDecorator struct {
 
 func (b *OpenTelemetryQueryBusDecorator) RegisterHandler(t query.TypeName, h query.Handler) {
 	b.Bus.RegisterHandler(t, func() query.HandlerFunc {
-		return func(q query.Query, ctx context.Context) (any, error) {
+		return func(ctx context.Context, q query.Query) (any, error) {
 			ctx, span := b.Tracer.Start(ctx, fmt.Sprintf("%s.handle", t))
 			defer span.End()
 
-			data, err := h.Handle(q, ctx)
+			data, err := h.Handle(ctx, q)
 			if err != nil {
 				span.RecordError(err, trace.WithStackTrace(true))
 				span.SetStatus(codes.Error, err.Error())
