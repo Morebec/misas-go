@@ -29,7 +29,7 @@ type OpenTelemetryQueryBusDecorator struct {
 	Tracer *SystemTracer
 }
 
-func (b *OpenTelemetryQueryBusDecorator) RegisterHandler(t query.TypeName, h query.Handler) {
+func (b *OpenTelemetryQueryBusDecorator) RegisterHandler(t query.PayloadTypeName, h query.Handler) {
 	b.Bus.RegisterHandler(t, func() query.HandlerFunc {
 		return func(ctx context.Context, q query.Query) (any, error) {
 			ctx, span := b.Tracer.Start(ctx, fmt.Sprintf("%s.handle", t))
@@ -51,7 +51,7 @@ func (b *OpenTelemetryQueryBusDecorator) Send(ctx context.Context, q query.Query
 	ctx, span := b.Tracer.Start(ctx, "queryBus.Send")
 	defer span.End()
 
-	span.SetAttributes(attribute.String("query.typeName", string(q.TypeName())))
+	span.SetAttributes(attribute.String("query.typeName", string(q.Payload.TypeName())))
 
 	data, err := b.Bus.Send(ctx, q)
 	if err != nil {

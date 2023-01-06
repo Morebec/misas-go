@@ -14,10 +14,17 @@
 
 package query
 
-// TypeName Represents the unique type name of a Query for serialization and discriminatory purposes.
-type TypeName string
+import "github.com/morebec/misas-go/misas"
+
+// PayloadTypeName TypeName Represents the unique type name of a Query for serialization and discriminatory purposes.
+type PayloadTypeName string
+
+type Payload interface {
+	TypeName() PayloadTypeName
+}
 
 // Query Represents an intent by an agent (human or machine) to get information about the system's state.
-type Query interface {
-	TypeName() TypeName
+type Query struct {
+	Payload  Payload
+	Metadata misas.Metadata
 }

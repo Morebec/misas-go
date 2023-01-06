@@ -41,6 +41,6 @@ type QueryConfigurator struct {
 }
 
 func (c QueryConfigurator) HandledBy(h query.Handler) QueryConfigurator {
-	c.system.QueryBus.RegisterHandler(c.query.TypeName(), h)
+	c.system.QueryBus.RegisterHandler(c.query.Payload.TypeName(), h)
 	return c
 }

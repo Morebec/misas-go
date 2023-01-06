@@ -42,8 +42,8 @@ func (sub *Subsystem) RegisterCommandHandler(tn command.PayloadTypeName, h comma
 }
 
 // RegisterQueryHandler registers a query.Query with the system.
-func (sub *Subsystem) RegisterQueryHandler(q query.Query, h query.Handler) *Subsystem {
-	sub.System.QueryBus.RegisterHandler(q.TypeName(), h)
+func (sub *Subsystem) RegisterQueryHandler(tn query.PayloadTypeName, h query.Handler) *Subsystem {
+	sub.System.QueryBus.RegisterHandler(tn, h)
 	return sub
 }
 
