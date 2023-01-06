@@ -18,6 +18,18 @@ MISAS Go mostly provides a set of abstractions to implement DDD, CQRS and ES con
 It also provides a few concrete implementation of these concepts, for the most common use cases.
 
 
+## Batteries included
+Here are some batteries that this library includes to make working with MISAS Systems in Go easier.
+
+- `clock`: Provides an abstraction of a clock.
+by returning "REDACTED" when converted to a string.
+- `postgresql/eventstore`: Implementation of an event store using PostgreSQL.
+- `postgresql/documentstore`: Implementation of a document store using PostgreSQL to easily persist unstructured data.
+- `postgresql/checkpointstore`: Implementation of a checkpoint store using PostgreSQL to persist the last processed event during event processing.
+- `postgresql/predictionstore`: Implementation of a prediction store using PostgreSQL.
+- `secret`: Provides a string implementation that avoids showing certain sensitive values in logs or external systems,
+
+
 ### Defining a System
 At the core of the library there is the concept of `System` which represents an information system.
 The `System` struct is used as a centralized point to define systems.
