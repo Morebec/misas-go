@@ -15,21 +15,36 @@
 package event
 
 import (
+	"github.com/morebec/misas-go/misas"
 	"github.com/pkg/errors"
 )
 
-// TypeName Represents the unique type name of an Event for serialization and discriminatory purposes.
-type TypeName string
+// PayloadTypeName Represents the unique type name of an Event for serialization and discriminatory purposes.
+type PayloadTypeName string
 
 // Event Represents a state change that has happened in the past.
 // As such it is a common practice, and recommended adding a field indicating the date and time at which the event occurred.
-type Event interface {
-	TypeName() TypeName
+type Event struct {
+	Payload  Payload
+	Metadata misas.Metadata
+}
+
+type Payload interface {
+	TypeName() PayloadTypeName
+}
+
+func New(p Payload) Event {
+	return NewWithMetadata(p, nil)
+}
+
+func NewWithMetadata(p Payload, m misas.Metadata) Event {
+	return Event{Payload: p, Metadata: m}
 }
 
 // List Represents a list of events.
 type List []Event
 
+// NewList creates a new list of events.
 func NewList(evts ...Event) []Event {
 	return evts
 }
@@ -57,10 +72,10 @@ func (l List) Select(p func(e Event) (bool, error)) (List, error) {
 }
 
 // SelectByTypeNames Returns a list of events with some event types filtered.
-func (l List) SelectByTypeNames(tns ...TypeName) List {
+func (l List) SelectByTypeNames(tns ...PayloadTypeName) List {
 	result, _ := l.Select(func(e Event) (bool, error) {
 		for _, t := range tns {
-			if t == e.TypeName() {
+			if t == e.Payload.TypeName() {
 				return true, nil
 			}
 		}
@@ -89,10 +104,10 @@ func (l List) Exclude(p func(e Event) (bool, error)) (List, error) {
 }
 
 // ExcludeByTypeNames Returns a list of events with some event types excluded according to their type names.
-func (l List) ExcludeByTypeNames(tns ...TypeName) List {
+func (l List) ExcludeByTypeNames(tns ...PayloadTypeName) List {
 	result, _ := l.Exclude(func(e Event) (bool, error) {
 		for _, t := range tns {
-			if t == e.TypeName() {
+			if t == e.Payload.TypeName() {
 				return true, nil
 			}
 		}

@@ -33,15 +33,15 @@ type eventLoaded struct {
 	AList   []string
 }
 
-const eventLoadedTypeName event.TypeName = "event.loaded"
+const eventLoadedTypeName event.PayloadTypeName = "event.loaded"
 
-func (l eventLoaded) TypeName() event.TypeName {
+func (l eventLoaded) TypeName() event.PayloadTypeName {
 	return eventLoadedTypeName
 }
 
 func TestEventLoader_Load(t *testing.T) {
 	type fields struct {
-		events map[event.TypeName]reflect.Type
+		events map[event.PayloadTypeName]reflect.Type
 	}
 	type args struct {
 		descriptor RecordedEventDescriptor
@@ -56,13 +56,13 @@ func TestEventLoader_Load(t *testing.T) {
 		{
 			name: "",
 			fields: fields{
-				events: map[event.TypeName]reflect.Type{},
+				events: map[event.PayloadTypeName]reflect.Type{},
 			},
 			args: args{
 				descriptor: RecordedEventDescriptor{
 					ID:       "#000",
 					TypeName: eventLoadedTypeName,
-					Payload: EventPayload{
+					Payload: DescriptorPayload{
 						"AString": "string",
 						"AnInt":   1,
 						"AFloat":  50.25,
@@ -83,7 +83,7 @@ func TestEventLoader_Load(t *testing.T) {
 					RecordedAt:     time.Time{},
 				},
 			},
-			want: eventLoaded{
+			want: event.New(eventLoaded{
 				AString: "string",
 				AnInt:   1,
 				AFloat:  50.25,
@@ -96,7 +96,7 @@ func TestEventLoader_Load(t *testing.T) {
 					"hello",
 					"world",
 				},
-			},
+			}),
 			wantErr: assert.NoError,
 		},
 	}
@@ -117,7 +117,7 @@ func TestEventLoader_Load(t *testing.T) {
 
 func TestEventConverter_ToEventPayload(t *testing.T) {
 	type fields struct {
-		events map[event.TypeName]reflect.Type
+		events map[event.PayloadTypeName]reflect.Type
 	}
 	type args struct {
 		evt event.Event
@@ -126,7 +126,7 @@ func TestEventConverter_ToEventPayload(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    EventPayload
+		want    DescriptorPayload
 		wantErr assert.ErrorAssertionFunc
 	}{
 		{
@@ -135,7 +135,7 @@ func TestEventConverter_ToEventPayload(t *testing.T) {
 				events: nil,
 			},
 			args: args{
-				evt: eventLoaded{
+				evt: event.New(eventLoaded{
 					AString: "string",
 					AnInt:   50,
 					AFloat:  50.25,
@@ -143,9 +143,9 @@ func TestEventConverter_ToEventPayload(t *testing.T) {
 					ARune:   'A',
 					AMap:    map[string]any{"hello": "world"},
 					AList:   []string{"hello", "world"},
-				},
+				}),
 			},
-			want: EventPayload{
+			want: DescriptorPayload{
 				"AString": "string",
 				"AnInt":   50.0,  // marshalling as json causes numbers which are translated to float64
 				"AFloat":  50.25, // marshalling as json causes numbers which are translated to float64

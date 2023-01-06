@@ -77,7 +77,7 @@ func RecordedEvent(event event.Event, opts ...store.AppendToStreamOption) EventS
 
 			descriptor := store.EventDescriptor{
 				ID:       store.NewEventID(),
-				TypeName: event.TypeName(),
+				TypeName: event.Payload.TypeName(),
 				Payload:  payload,
 				Metadata: nil,
 			}

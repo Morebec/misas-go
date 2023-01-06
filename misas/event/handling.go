@@ -35,5 +35,5 @@ type Bus interface {
 	Send(ctx context.Context, e Event) error
 
 	// RegisterHandler Registers an event handler with this bus.
-	RegisterHandler(t TypeName, h Handler)
+	RegisterHandler(t PayloadTypeName, h Handler)
 }

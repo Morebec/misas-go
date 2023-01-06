@@ -27,7 +27,7 @@ import (
 // it provides to obtain a modified copy.
 type UpcastableEventDescriptor struct {
 	ID             EventID
-	TypeName       event.TypeName
+	TypeName       event.PayloadTypeName
 	Payload        UpcastableEventPayload
 	StreamID       StreamID
 	Version        StreamVersion
@@ -62,7 +62,7 @@ func (d UpcastableEventDescriptor) WithPayload(payload UpcastableEventPayload) U
 }
 
 // WithTypeName returns a copy of this event with the type name renamed.
-func (d UpcastableEventDescriptor) WithTypeName(n event.TypeName) UpcastableEventDescriptor {
+func (d UpcastableEventDescriptor) WithTypeName(n event.PayloadTypeName) UpcastableEventDescriptor {
 	d.TypeName = n
 	return d
 }
@@ -77,7 +77,7 @@ func (d UpcastableEventDescriptor) ToRecordedEventDescriptor() RecordedEventDesc
 	return RecordedEventDescriptor{
 		ID:             d.ID,
 		TypeName:       d.TypeName,
-		Payload:        EventPayload(d.Payload),
+		Payload:        DescriptorPayload(d.Payload),
 		Metadata:       misas.Metadata(d.Metadata),
 		StreamID:       d.StreamID,
 		Version:        d.Version,

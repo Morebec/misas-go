@@ -399,7 +399,7 @@ func (es *EventStore) TruncateStream(ctx context.Context, id store.StreamID, opt
 		{
 			ID:       store.EventID(uuid.New().String()),
 			TypeName: store.StreamTruncatedEventTypeName,
-			Payload: store.EventPayload{
+			Payload: store.DescriptorPayload{
 				"streamId":    "",
 				"reason":      options.Reason,
 				"truncatedAt": es.clock.Now(),
@@ -448,7 +448,7 @@ func (es *EventStore) DeleteStream(ctx context.Context, id store.StreamID) error
 		{
 			ID:       store.EventID(uuid.New().String()),
 			TypeName: store.StreamTruncatedEventTypeName,
-			Payload: store.EventPayload{
+			Payload: store.DescriptorPayload{
 				"streamId":  string(id),
 				"reason":    nil,
 				"deletedAt": es.clock.Now(),

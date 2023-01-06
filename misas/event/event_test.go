@@ -19,83 +19,83 @@ import (
 	"testing"
 )
 
-const unitTestSucceededTypeName TypeName = "unit_test.succeeded"
+const unitTestSucceededTypeName PayloadTypeName = "unit_test.succeeded"
 
 type unitTestSucceeded struct{}
 
-func (u unitTestSucceeded) TypeName() TypeName {
+func (u unitTestSucceeded) TypeName() PayloadTypeName {
 	return unitTestSucceededTypeName
 }
 
-const unitTestFailedTypeName TypeName = "unit_test.failed"
+const unitTestFailedTypeName PayloadTypeName = "unit_test.failed"
 
 type unitTestFailed struct{}
 
-func (u unitTestFailed) TypeName() TypeName {
+func (u unitTestFailed) TypeName() PayloadTypeName {
 	return unitTestFailedTypeName
 }
 
 func TestEventList_Exclude(t *testing.T) {
 	l := List{
-		unitTestSucceeded{},
-		unitTestFailed{},
+		New(unitTestSucceeded{}),
+		New(unitTestFailed{}),
 	}
 
 	excluded, err := l.Exclude(func(e Event) (bool, error) {
-		return e.TypeName() == unitTestSucceededTypeName, nil
+		return e.Payload.TypeName() == unitTestSucceededTypeName, nil
 	})
 	assert.Nil(t, err)
 	assert.Len(t, excluded, 1)
-	assert.Equal(t, (*excluded.First()).TypeName(), unitTestFailedTypeName)
+	assert.Equal(t, (*excluded.First()).Payload.TypeName(), unitTestFailedTypeName)
 }
 
 func TestEventList_ExcludeByTypeNames(t *testing.T) {
 	l := List{
-		unitTestSucceeded{},
-		unitTestFailed{},
+		New(unitTestSucceeded{}),
+		New(unitTestFailed{}),
 	}
 
 	excluded := l.ExcludeByTypeNames(unitTestFailedTypeName)
 	assert.Len(t, excluded, 1)
-	assert.Equal(t, (*excluded.First()).TypeName(), unitTestSucceededTypeName)
+	assert.Equal(t, (*excluded.First()).Payload.TypeName(), unitTestSucceededTypeName)
 }
 
 func TestEventList_IsEmpty(t *testing.T) {
-	assert.False(t, List{unitTestSucceeded{}, unitTestFailed{}}.IsEmpty())
+	assert.False(t, List{New(unitTestSucceeded{}), New(unitTestFailed{})}.IsEmpty())
 	assert.True(t, List{}.IsEmpty())
 }
 
 func TestEventList_Select(t *testing.T) {
 	l := List{
-		unitTestSucceeded{},
-		unitTestFailed{},
+		New(unitTestSucceeded{}),
+		New(unitTestFailed{}),
 	}
 
 	selected, err := l.Select(func(e Event) (bool, error) {
-		return e.TypeName() == unitTestSucceededTypeName, nil
+		return e.Payload.TypeName() == unitTestSucceededTypeName, nil
 	})
 	assert.Nil(t, err)
 	assert.Len(t, selected, 1)
-	assert.Equal(t, (*selected.First()).TypeName(), unitTestSucceededTypeName)
+	assert.Equal(t, (*selected.First()).Payload.TypeName(), unitTestSucceededTypeName)
 }
 
 func TestEventList_SelectByTypeNames(t *testing.T) {
 	l := List{
-		unitTestSucceeded{},
-		unitTestFailed{},
+		New(unitTestSucceeded{}),
+		New(unitTestFailed{}),
 	}
 
 	selected := l.SelectByTypeNames(unitTestFailedTypeName)
 	assert.Len(t, selected, 1)
-	assert.Equal(t, (*selected.First()).TypeName(), unitTestFailedTypeName)
+	assert.Equal(t, (*selected.First()).Payload.TypeName(), unitTestFailedTypeName)
 }
 
 func TestEventList_First(t *testing.T) {
-	assert.Equal(t, (*List{unitTestSucceeded{}, unitTestFailed{}}.First()).TypeName(), unitTestSucceededTypeName)
+	assert.Equal(t, (*List{New(unitTestSucceeded{}), New(unitTestFailed{})}.First()).Payload.TypeName(), unitTestSucceededTypeName)
 	assert.Nil(t, List{}.First())
 }
 
 func TestEventList_Last(t *testing.T) {
-	assert.Equal(t, (*List{unitTestSucceeded{}, unitTestFailed{}}.Last()).TypeName(), unitTestFailedTypeName)
+	assert.Equal(t, (*List{New(unitTestSucceeded{}), New(unitTestFailed{})}.Last()).Payload.TypeName(), unitTestFailedTypeName)
 	assert.Nil(t, List{}.Last())
 }

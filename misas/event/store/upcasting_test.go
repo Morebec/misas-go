@@ -29,7 +29,7 @@ import (
 func TestUpcastableEventDescriptor_ToRecordedEventDescriptor(t *testing.T) {
 	type fields struct {
 		ID             EventID
-		TypeName       event.TypeName
+		TypeName       event.PayloadTypeName
 		Payload        UpcastableEventPayload
 		StreamID       StreamID
 		Version        StreamVersion
@@ -61,7 +61,7 @@ func TestUpcastableEventDescriptor_ToRecordedEventDescriptor(t *testing.T) {
 			want: RecordedEventDescriptor{
 				ID:       "#000",
 				TypeName: "unit.test",
-				Payload: EventPayload{
+				Payload: DescriptorPayload{
 					"hello": "world",
 				},
 				Metadata: misas.Metadata{
@@ -94,7 +94,7 @@ func TestUpcastableEventDescriptor_ToRecordedEventDescriptor(t *testing.T) {
 func TestUpcastableEventDescriptor_WithID(t *testing.T) {
 	type fields struct {
 		ID             EventID
-		TypeName       event.TypeName
+		TypeName       event.PayloadTypeName
 		Payload        UpcastableEventPayload
 		StreamID       StreamID
 		Version        StreamVersion
@@ -166,7 +166,7 @@ func TestUpcastableEventDescriptor_WithID(t *testing.T) {
 func TestUpcastableEventDescriptor_WithPayload(t *testing.T) {
 	type fields struct {
 		ID             EventID
-		TypeName       event.TypeName
+		TypeName       event.PayloadTypeName
 		Payload        UpcastableEventPayload
 		StreamID       StreamID
 		Version        StreamVersion
@@ -240,7 +240,7 @@ func TestUpcastableEventDescriptor_WithPayload(t *testing.T) {
 func TestUpcastableEventDescriptor_WithTypeName(t *testing.T) {
 	type fields struct {
 		ID             EventID
-		TypeName       event.TypeName
+		TypeName       event.PayloadTypeName
 		Payload        UpcastableEventPayload
 		StreamID       StreamID
 		Version        StreamVersion
@@ -249,7 +249,7 @@ func TestUpcastableEventDescriptor_WithTypeName(t *testing.T) {
 		Metadata       UpcastableEventMetadata
 	}
 	type args struct {
-		n event.TypeName
+		n event.PayloadTypeName
 	}
 	tests := []struct {
 		name   string
@@ -312,7 +312,7 @@ func TestUpcastableEventDescriptor_WithTypeName(t *testing.T) {
 func TestUpcastableEventDescriptor_withMetadata(t *testing.T) {
 	type fields struct {
 		ID             EventID
-		TypeName       event.TypeName
+		TypeName       event.PayloadTypeName
 		Payload        UpcastableEventPayload
 		StreamID       StreamID
 		Version        StreamVersion
@@ -1205,7 +1205,7 @@ func TestUpcastingEventStoreDecorator_ReadFromStream(t *testing.T) {
 	eventA := EventDescriptor{
 		ID:       EventID(uuid.NewString()),
 		TypeName: "unit.test.upcastable",
-		Payload: EventPayload{
+		Payload: DescriptorPayload{
 			"hello": "world",
 		},
 		Metadata: misas.Metadata{},
@@ -1214,7 +1214,7 @@ func TestUpcastingEventStoreDecorator_ReadFromStream(t *testing.T) {
 	eventB := EventDescriptor{
 		ID:       EventID(uuid.NewString()),
 		TypeName: "unit.test.not-upcastable",
-		Payload: EventPayload{
+		Payload: DescriptorPayload{
 			"hello": "world",
 		},
 		Metadata: misas.Metadata{},
@@ -1233,7 +1233,7 @@ func TestUpcastingEventStoreDecorator_ReadFromStream(t *testing.T) {
 				ID:       eventA.ID,
 				StreamID: streamID,
 				TypeName: "unit.test.upcasted",
-				Payload: EventPayload{
+				Payload: DescriptorPayload{
 					"hello": "world",
 				},
 				RecordedAt:     currentDate,
@@ -1245,7 +1245,7 @@ func TestUpcastingEventStoreDecorator_ReadFromStream(t *testing.T) {
 				ID:       eventB.ID,
 				StreamID: streamID,
 				TypeName: "unit.test.not-upcastable",
-				Payload: EventPayload{
+				Payload: DescriptorPayload{
 					"hello": "world",
 				},
 				RecordedAt:     currentDate,

@@ -59,14 +59,14 @@ type EventHandlerConfigurator struct {
 
 // Handles allows registering the event and the handler with the event.Bus, as well as
 // registering the event with the store.EventConverter.
-func (c EventHandlerConfigurator) Handles(e event.Event) EventHandlerConfigurator {
+func (c EventHandlerConfigurator) Handles(e event.Payload) EventHandlerConfigurator {
 	c.system.EventConverter.RegisterEvent(e)
 	c.system.EventBus.RegisterHandler(e.TypeName(), c.handler)
 	return c
 }
 
 // RegisterEvent allows registering an event with the store.EventConverter.
-func (sub *Subsystem) RegisterEvent(e event.Event) *Subsystem {
+func (sub *Subsystem) RegisterEvent(e event.Payload) *Subsystem {
 	sub.System.EventConverter.RegisterEvent(e)
 	return sub
 }

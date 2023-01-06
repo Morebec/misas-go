@@ -20,34 +20,34 @@ import (
 )
 
 type InMemoryBus struct {
-	handlers map[TypeName][]Handler
+	handlers map[PayloadTypeName][]Handler
 }
 
 func NewInMemoryBus() *InMemoryBus {
-	return &InMemoryBus{handlers: map[TypeName][]Handler{}}
+	return &InMemoryBus{handlers: map[PayloadTypeName][]Handler{}}
 }
 
 func (eb *InMemoryBus) Send(ctx context.Context, e Event) error {
-	handlers := eb.resolveHandlers(e)
+	handlers := eb.resolveHandlers(e.Payload.TypeName())
 
 	for _, h := range handlers {
 		if err := h.Handle(ctx, e); err != nil {
-			return errors.Wrapf(err, "failed handling event \"%s\"", e.TypeName())
+			return errors.Wrapf(err, "failed handling event \"%s\"", e.Payload.TypeName())
 		}
 	}
 
 	return nil
 }
 
-func (eb *InMemoryBus) RegisterHandler(t TypeName, h Handler) {
+func (eb *InMemoryBus) RegisterHandler(t PayloadTypeName, h Handler) {
 	if _, found := eb.handlers[t]; !found {
 		eb.handlers[t] = []Handler{}
 	}
 	eb.handlers[t] = append(eb.handlers[t], h)
 }
 
-func (eb *InMemoryBus) resolveHandlers(e Event) []Handler {
-	if handlers, found := eb.handlers[e.TypeName()]; !found {
+func (eb *InMemoryBus) resolveHandlers(tn PayloadTypeName) []Handler {
+	if handlers, found := eb.handlers[tn]; !found {
 		return nil
 	} else {
 		return handlers

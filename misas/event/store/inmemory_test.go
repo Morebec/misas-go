@@ -24,7 +24,7 @@ import (
 	"testing"
 )
 
-const InMemoryUnitTestPassedEventTypeName event.TypeName = "unit_test.passed"
+const InMemoryUnitTestPassedEventTypeName event.PayloadTypeName = "unit_test.passed"
 
 func TestInMemoryEventStore_AppendToStream(t *testing.T) {
 	store := NewInMemoryEventStore(clock.UTCClock{})
@@ -34,19 +34,19 @@ func TestInMemoryEventStore_AppendToStream(t *testing.T) {
 		{
 			ID:       "event#1",
 			TypeName: InMemoryUnitTestPassedEventTypeName,
-			Payload:  EventPayload{},
+			Payload:  DescriptorPayload{},
 			Metadata: misas.Metadata{"hello": "world"},
 		},
 		{
 			ID:       "event#2",
 			TypeName: InMemoryUnitTestPassedEventTypeName,
-			Payload:  EventPayload{},
+			Payload:  DescriptorPayload{},
 			Metadata: misas.Metadata{},
 		},
 		{
 			ID:       "event#3",
 			TypeName: InMemoryUnitTestPassedEventTypeName,
-			Payload:  EventPayload{},
+			Payload:  DescriptorPayload{},
 			Metadata: misas.Metadata{},
 		},
 	})
@@ -71,19 +71,19 @@ func TestInMemoryEventStore_ReadFromStream(t *testing.T) {
 		{
 			ID:       "event#1",
 			TypeName: InMemoryUnitTestPassedEventTypeName,
-			Payload:  EventPayload{},
+			Payload:  DescriptorPayload{},
 			Metadata: misas.Metadata{},
 		},
 		{
 			ID:       "event#2",
 			TypeName: InMemoryUnitTestPassedEventTypeName,
-			Payload:  EventPayload{},
+			Payload:  DescriptorPayload{},
 			Metadata: misas.Metadata{},
 		},
 		{
 			ID:       "event#3",
 			TypeName: InMemoryUnitTestPassedEventTypeName,
-			Payload:  EventPayload{},
+			Payload:  DescriptorPayload{},
 			Metadata: misas.Metadata{},
 		},
 	})
@@ -143,7 +143,7 @@ func TestInMemoryEventStore_Clear(t *testing.T) {
 		{
 			ID:       EventID(uuid.New().String()),
 			TypeName: InMemoryUnitTestPassedEventTypeName,
-			Payload:  EventPayload{},
+			Payload:  DescriptorPayload{},
 			Metadata: misas.Metadata{},
 		},
 	})
@@ -164,7 +164,7 @@ func TestInMemoryEventStore_DeleteStream(t *testing.T) {
 		{
 			ID:       EventID(uuid.New().String()),
 			TypeName: InMemoryUnitTestPassedEventTypeName,
-			Payload:  EventPayload{},
+			Payload:  DescriptorPayload{},
 			Metadata: misas.Metadata{},
 		},
 	})
@@ -189,7 +189,7 @@ func TestInMemoryEventStore_GetStream(t *testing.T) {
 		{
 			ID:       EventID(uuid.New().String()),
 			TypeName: InMemoryUnitTestPassedEventTypeName,
-			Payload:  EventPayload{},
+			Payload:  DescriptorPayload{},
 			Metadata: misas.Metadata{},
 		},
 	})
@@ -217,7 +217,7 @@ func TestInMemoryEventStore_StreamExists(t *testing.T) {
 		{
 			ID:       EventID(uuid.New().String()),
 			TypeName: InMemoryUnitTestPassedEventTypeName,
-			Payload:  EventPayload{},
+			Payload:  DescriptorPayload{},
 			Metadata: misas.Metadata{},
 		},
 	})
@@ -235,19 +235,19 @@ func TestInMemoryEventStore_SubscribeToStreams(t *testing.T) {
 		{
 			ID:       "event#1",
 			TypeName: InMemoryUnitTestPassedEventTypeName,
-			Payload:  EventPayload{},
+			Payload:  DescriptorPayload{},
 			Metadata: misas.Metadata{},
 		},
 		{
 			ID:       "event#2",
 			TypeName: InMemoryUnitTestPassedEventTypeName,
-			Payload:  EventPayload{},
+			Payload:  DescriptorPayload{},
 			Metadata: misas.Metadata{},
 		},
 		{
 			ID:       "event#3",
 			TypeName: InMemoryUnitTestPassedEventTypeName,
-			Payload:  EventPayload{},
+			Payload:  DescriptorPayload{},
 			Metadata: misas.Metadata{},
 		},
 	})
@@ -268,7 +268,7 @@ func TestInMemoryEventStore_SubscribeToStreams(t *testing.T) {
 		{
 			ID:       "event#4",
 			TypeName: InMemoryUnitTestPassedEventTypeName,
-			Payload:  EventPayload{},
+			Payload:  DescriptorPayload{},
 			Metadata: misas.Metadata{},
 		},
 	})
@@ -286,19 +286,19 @@ func TestInMemoryEventStore_TruncateStream(t *testing.T) {
 		{
 			ID:       "event#1",
 			TypeName: InMemoryUnitTestPassedEventTypeName,
-			Payload:  EventPayload{},
+			Payload:  DescriptorPayload{},
 			Metadata: misas.Metadata{},
 		},
 		{
 			ID:       "event#2",
 			TypeName: InMemoryUnitTestPassedEventTypeName,
-			Payload:  EventPayload{},
+			Payload:  DescriptorPayload{},
 			Metadata: misas.Metadata{},
 		},
 		{
 			ID:       "event#3",
 			TypeName: InMemoryUnitTestPassedEventTypeName,
-			Payload:  EventPayload{},
+			Payload:  DescriptorPayload{},
 			Metadata: misas.Metadata{},
 		},
 	})

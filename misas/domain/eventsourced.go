@@ -91,7 +91,7 @@ func (r EventStoreRepository) Save(ctx context.Context, streamID store.StreamID,
 
 		descriptors = append(descriptors, store.EventDescriptor{
 			ID:       store.EventID(uuid.New().String()),
-			TypeName: e.TypeName(),
+			TypeName: e.Payload.TypeName(),
 			Payload:  payload,
 			Metadata: m,
 		})

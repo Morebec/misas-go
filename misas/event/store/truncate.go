@@ -33,7 +33,7 @@ func BeforePosition(p Position) TruncateStreamOption {
 	}
 }
 
-const StreamTruncatedEventTypeName event.TypeName = "es.stream.truncated"
+const StreamTruncatedEventTypeName event.PayloadTypeName = "es.stream.truncated"
 
 type StreamTruncatedEvent struct {
 	StreamID    string
@@ -41,7 +41,7 @@ type StreamTruncatedEvent struct {
 	TruncatedAt time.Time
 }
 
-func (s StreamTruncatedEvent) TypeName() event.TypeName {
+func (s StreamTruncatedEvent) TypeName() event.PayloadTypeName {
 	return StreamTruncatedEventTypeName
 }
 

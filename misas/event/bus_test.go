@@ -23,7 +23,7 @@ func TestInMemoryBus_Send(t *testing.T) {
 		return nil
 	}))
 
-	err := b.Send(context.Background(), unitTestFailed{})
+	err := b.Send(context.Background(), New(unitTestFailed{}))
 	assert.NoError(t, err)
 
 	assert.True(t, sent)

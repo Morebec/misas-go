@@ -25,8 +25,8 @@ type StreamDeletedEvent struct {
 	DeletedAt time.Time
 }
 
-const StreamDeletedEventTypeName event.TypeName = "es.stream.deleted"
+const StreamDeletedEventTypeName event.PayloadTypeName = "es.stream.deleted"
 
-func (s StreamDeletedEvent) TypeName() event.TypeName {
+func (s StreamDeletedEvent) TypeName() event.PayloadTypeName {
 	return StreamDeletedEventTypeName
 }

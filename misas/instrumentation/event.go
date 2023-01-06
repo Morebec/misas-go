@@ -37,7 +37,7 @@ func (b *OpenTelemetryEventBusDecorator) Send(ctx context.Context, e event.Event
 	ctx, span := b.Tracer.Start(ctx, "eventBus.Send")
 	defer span.End()
 
-	span.SetAttributes(attribute.String("event.typeName", string(e.TypeName())))
+	span.SetAttributes(attribute.String("event.typeName", string(e.Payload.TypeName())))
 
 	if err := b.Bus.Send(ctx, e); err != nil {
 		span.RecordError(err)
@@ -47,7 +47,7 @@ func (b *OpenTelemetryEventBusDecorator) Send(ctx context.Context, e event.Event
 	return nil
 }
 
-func (b *OpenTelemetryEventBusDecorator) RegisterHandler(t event.TypeName, h event.Handler) {
+func (b *OpenTelemetryEventBusDecorator) RegisterHandler(t event.PayloadTypeName, h event.Handler) {
 	b.Bus.RegisterHandler(t, func() event.HandlerFunc {
 		return func(ctx context.Context, e event.Event) error {
 			ctx, span := b.Tracer.Start(ctx, fmt.Sprintf("%s.%s", t, typeAsString(h)))

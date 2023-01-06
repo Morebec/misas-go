@@ -31,6 +31,10 @@ func (m Metadata) Get(k string, d any) any {
 
 // Set returns a copy of the metadata a given value for a key.
 func (m Metadata) Set(k string, v any) Metadata {
+	if m == nil {
+		//goland:noinspection GoAssignmentToReceiver
+		m = map[string]any{}
+	}
 	m[k] = v
 	return m
 }

@@ -36,7 +36,7 @@ func (c createAccount) TypeName() command.PayloadTypeName {
 type accountCreated struct {
 }
 
-func (a accountCreated) TypeName() event.TypeName {
+func (a accountCreated) TypeName() event.PayloadTypeName {
 	return "account.created"
 }
 
@@ -48,7 +48,7 @@ func TestScenario(t *testing.T) {
 				// m.RegisterEventHandler().Handles(accountCreated{})
 				m.RegisterEvent(accountCreated{})
 				m.RegisterCommandHandler(createAccount{}.TypeName(), command.HandlerFunc(func(ctx context.Context, c command.Command) (any, error) {
-					payload, err := m.System.EventConverter.ToEventPayload(accountCreated{})
+					payload, err := m.System.EventConverter.ToEventPayload(event.New(accountCreated{}))
 					if err != nil {
 						return nil, err
 					}
@@ -87,7 +87,7 @@ func TestScenario(t *testing.T) {
 				HasRecorded(
 					// NoEvents(),
 					ExactlyTheseEvents(
-						accountCreated{},
+						event.New(accountCreated{}),
 					),
 				),
 			),

@@ -94,21 +94,22 @@ func NewEventID() EventID {
 	return EventID(uuid.NewString())
 }
 
-type EventPayload map[string]any
+// DescriptorPayload represents the payload of an event descriptor.
+type DescriptorPayload map[string]any
 
 // EventDescriptor Represents a wrapper around an event to be added to the store.
 type EventDescriptor struct {
 	ID       EventID
-	TypeName event.TypeName
-	Payload  EventPayload
+	TypeName event.PayloadTypeName
+	Payload  DescriptorPayload
 	Metadata misas.Metadata
 }
 
 // RecordedEventDescriptor represents an event descriptor for an event that was previously recorded in the store.
 type RecordedEventDescriptor struct {
 	ID             EventID
-	TypeName       event.TypeName
-	Payload        EventPayload
+	TypeName       event.PayloadTypeName
+	Payload        DescriptorPayload
 	Metadata       misas.Metadata
 	StreamID       StreamID
 	Version        StreamVersion

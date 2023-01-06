@@ -30,7 +30,7 @@ type postgreSQLUnitTestPassedEvent struct {
 	TestName string
 }
 
-func (u postgreSQLUnitTestPassedEvent) TypeName() event.TypeName {
+func (u postgreSQLUnitTestPassedEvent) TypeName() event.PayloadTypeName {
 	return "unit_test.passed"
 }
 
@@ -70,19 +70,19 @@ func TestEventStore_AppendToStream(t *testing.T) {
 		{
 			ID:       "event#1",
 			TypeName: postgreSQLUnitTestPassedEvent{}.TypeName(),
-			Payload:  store.EventPayload{"TestName": "AppendToStream"},
+			Payload:  store.DescriptorPayload{"TestName": "AppendToStream"},
 			Metadata: misas.Metadata{"hello": "world"},
 		},
 		{
 			ID:       "event#2",
 			TypeName: postgreSQLUnitTestPassedEvent{}.TypeName(),
-			Payload:  store.EventPayload{"TestName": "AppendToStream"},
+			Payload:  store.DescriptorPayload{"TestName": "AppendToStream"},
 			Metadata: misas.Metadata{},
 		},
 		{
 			ID:       "event#3",
 			TypeName: postgreSQLUnitTestPassedEvent{}.TypeName(),
-			Payload:  store.EventPayload{"TestName": "AppendToStream"},
+			Payload:  store.DescriptorPayload{"TestName": "AppendToStream"},
 			Metadata: misas.Metadata{},
 		},
 	}, store.WithOptimisticConcurrencyCheckDisabled())
@@ -107,19 +107,19 @@ func TestEventStore_ReadFromStream(t *testing.T) {
 		{
 			ID:       "event#1",
 			TypeName: postgreSQLUnitTestPassedEvent{}.TypeName(),
-			Payload:  store.EventPayload{"TestName": "ReadFromStream"},
+			Payload:  store.DescriptorPayload{"TestName": "ReadFromStream"},
 			Metadata: misas.Metadata{},
 		},
 		{
 			ID:       "event#2",
 			TypeName: postgreSQLUnitTestPassedEvent{}.TypeName(),
-			Payload:  store.EventPayload{"TestName": "ReadFromStream"},
+			Payload:  store.DescriptorPayload{"TestName": "ReadFromStream"},
 			Metadata: misas.Metadata{},
 		},
 		{
 			ID:       "event#3",
 			TypeName: postgreSQLUnitTestPassedEvent{}.TypeName(),
-			Payload:  store.EventPayload{"TestName": "ReadFromStream"},
+			Payload:  store.DescriptorPayload{"TestName": "ReadFromStream"},
 			Metadata: misas.Metadata{},
 		},
 	}, store.WithOptimisticConcurrencyCheckDisabled())
@@ -181,7 +181,7 @@ func TestEventStore_Clear(t *testing.T) {
 		{
 			ID:       store.EventID(uuid.New().String()),
 			TypeName: postgreSQLUnitTestPassedEvent{}.TypeName(),
-			Payload:  store.EventPayload{"TestName": "Clear"},
+			Payload:  store.DescriptorPayload{"TestName": "Clear"},
 			Metadata: misas.Metadata{},
 		},
 	})
@@ -202,7 +202,7 @@ func TestEventStore_DeleteStream(t *testing.T) {
 		{
 			ID:       store.EventID(uuid.New().String()),
 			TypeName: postgreSQLUnitTestPassedEvent{}.TypeName(),
-			Payload:  store.EventPayload{},
+			Payload:  store.DescriptorPayload{},
 			Metadata: misas.Metadata{},
 		},
 	})
@@ -227,7 +227,7 @@ func TestEventStore_GetStream(t *testing.T) {
 		{
 			ID:       store.EventID(uuid.New().String()),
 			TypeName: postgreSQLUnitTestPassedEvent{}.TypeName(),
-			Payload:  store.EventPayload{"TestName": "GetStream"},
+			Payload:  store.DescriptorPayload{"TestName": "GetStream"},
 			Metadata: misas.Metadata{},
 		},
 	})
@@ -255,7 +255,7 @@ func TestEventStore_StreamExists(t *testing.T) {
 		{
 			ID:       store.EventID(uuid.New().String()),
 			TypeName: postgreSQLUnitTestPassedEvent{}.TypeName(),
-			Payload:  store.EventPayload{"TestName": "StreamExists"},
+			Payload:  store.DescriptorPayload{"TestName": "StreamExists"},
 			Metadata: misas.Metadata{},
 		},
 	})
@@ -273,19 +273,19 @@ func TestEventStore_SubscribeToStream(t *testing.T) {
 		{
 			ID:       "event#1",
 			TypeName: postgreSQLUnitTestPassedEvent{}.TypeName(),
-			Payload:  store.EventPayload{"TestName": "SubscribeToStream"},
+			Payload:  store.DescriptorPayload{"TestName": "SubscribeToStream"},
 			Metadata: misas.Metadata{},
 		},
 		{
 			ID:       "event#2",
 			TypeName: postgreSQLUnitTestPassedEvent{}.TypeName(),
-			Payload:  store.EventPayload{"TestName": "SubscribeToStream"},
+			Payload:  store.DescriptorPayload{"TestName": "SubscribeToStream"},
 			Metadata: misas.Metadata{},
 		},
 		{
 			ID:       "event#3",
 			TypeName: postgreSQLUnitTestPassedEvent{}.TypeName(),
-			Payload:  store.EventPayload{"TestName": "SubscribeToStream"},
+			Payload:  store.DescriptorPayload{"TestName": "SubscribeToStream"},
 			Metadata: misas.Metadata{},
 		},
 	})
@@ -301,7 +301,7 @@ func TestEventStore_SubscribeToStream(t *testing.T) {
 		{
 			ID:       "event#4",
 			TypeName: postgreSQLUnitTestPassedEvent{}.TypeName(),
-			Payload:  store.EventPayload{"TestName": "SubscribeToStream"},
+			Payload:  store.DescriptorPayload{"TestName": "SubscribeToStream"},
 			Metadata: misas.Metadata{},
 		},
 	})
@@ -322,19 +322,19 @@ func TestEventStore_TruncateStream(t *testing.T) {
 		{
 			ID:       "event#1",
 			TypeName: postgreSQLUnitTestPassedEvent{}.TypeName(),
-			Payload:  store.EventPayload{"TestName": "TruncateStream"},
+			Payload:  store.DescriptorPayload{"TestName": "TruncateStream"},
 			Metadata: misas.Metadata{},
 		},
 		{
 			ID:       "event#2",
 			TypeName: postgreSQLUnitTestPassedEvent{}.TypeName(),
-			Payload:  store.EventPayload{"TestName": "TruncateStream"},
+			Payload:  store.DescriptorPayload{"TestName": "TruncateStream"},
 			Metadata: misas.Metadata{},
 		},
 		{
 			ID:       "event#3",
 			TypeName: postgreSQLUnitTestPassedEvent{}.TypeName(),
-			Payload:  store.EventPayload{"TestName": "TruncateStream"},
+			Payload:  store.DescriptorPayload{"TestName": "TruncateStream"},
 			Metadata: misas.Metadata{},
 		},
 	})

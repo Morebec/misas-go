@@ -22,28 +22,28 @@ import (
 )
 
 // EventConverter is a service responsible for converting event.Event to EventDescriptor and RecordedEventDescriptor back to event.Event.
-// Internally it relies on mapping the empty value of an event.Event to its event.TypeName so that it can read the event.TypeName
+// Internally it relies on mapping the empty value of an event.Event to its event.PayloadTypeName so that it can read the event.PayloadTypeName
 // of a given RecordedEventDescriptor to have the right in memory representation (struct) of the event.Event.
 type EventConverter struct {
-	events map[event.TypeName]reflect.Type
+	events map[event.PayloadTypeName]reflect.Type
 }
 
 func NewEventConverter() *EventConverter {
-	ec := &EventConverter{map[event.TypeName]reflect.Type{}}
+	ec := &EventConverter{map[event.PayloadTypeName]reflect.Type{}}
 	ec.RegisterEvent(StreamTruncatedEvent{})
 	return ec
 }
 
-// ToEventPayload converts an event.Event to an EventPayload to be used with an EventDescriptor.
-func (c *EventConverter) ToEventPayload(evt event.Event) (EventPayload, error) {
-	marshal, err := json.Marshal(evt)
+// ToEventPayload converts an event.Event to an DescriptorPayload to be used with an EventDescriptor.
+func (c *EventConverter) ToEventPayload(evt event.Event) (DescriptorPayload, error) {
+	marshal, err := json.Marshal(evt.Payload)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed converting event \"%s\" to EventPayload", evt.TypeName())
+		return nil, errors.Wrapf(err, "failed converting event \"%s\" to DescriptorPayload", evt.Payload.TypeName())
 	}
 
-	var payload EventPayload
+	var payload DescriptorPayload
 	if err := json.Unmarshal(marshal, &payload); err != nil {
-		return nil, errors.Wrapf(err, "failed converting event \"%s\" to EventPayload", evt.TypeName())
+		return nil, errors.Wrapf(err, "failed converting event \"%s\" to DescriptorPayload", evt.Payload.TypeName())
 	}
 
 	return payload, nil
@@ -53,20 +53,29 @@ func (c *EventConverter) ToEventPayload(evt event.Event) (EventPayload, error) {
 func (c *EventConverter) FromRecordedEventDescriptor(descriptor RecordedEventDescriptor) (event.Event, error) {
 	evt, err := c.find(descriptor.TypeName)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed loading event \"%s/%s\" in memory", descriptor.TypeName, descriptor.ID)
+		return event.Event{}, errors.Wrapf(err, "failed loading event \"%s/%s\" in memory", descriptor.TypeName, descriptor.ID)
 	}
 
 	marshal, err := json.Marshal(descriptor.Payload)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed loading event \"%s/%s\" in memory", descriptor.TypeName, descriptor.ID)
+		return event.Event{}, errors.Wrapf(err, "failed loading event \"%s/%s\" in memory", descriptor.TypeName, descriptor.ID)
 	}
 
 	if err := json.Unmarshal(marshal, evt); err != nil {
-		return nil, errors.Wrapf(err, "failed loading event \"%s/%s\" in memory", descriptor.TypeName, descriptor.ID)
+		return event.Event{}, errors.Wrapf(err, "failed loading event \"%s/%s\" in memory", descriptor.TypeName, descriptor.ID)
 	}
 
 	// Convert *event.Event to event.Event
-	return reflect.ValueOf(evt).Elem().Interface().(event.Event), nil
+	payload := reflect.ValueOf(evt).Elem().Interface().(event.Payload)
+
+	metadata := descriptor.Metadata
+	metadata.Set("id", string(descriptor.ID))
+	metadata.Set("streamId", string(descriptor.StreamID))
+	metadata.Set("sequenceNumber", int64(descriptor.SequenceNumber))
+	metadata.Set("version", int64(descriptor.Version))
+	metadata.Set("recordedAt", descriptor.RecordedAt)
+
+	return event.NewWithMetadata(payload, metadata), nil
 }
 
 // StreamSliceToEventList converts a StreamSlice to an event.List.
@@ -83,7 +92,7 @@ func (c *EventConverter) StreamSliceToEventList(slice StreamSlice) (event.List, 
 }
 
 // RegisterEvent registers an event and its type with this converter.
-func (c *EventConverter) RegisterEvent(e event.Event) *EventConverter {
+func (c *EventConverter) RegisterEvent(e event.Payload) *EventConverter {
 	if _, found := c.events[e.TypeName()]; found {
 		return c
 	}
@@ -99,16 +108,16 @@ func (c *EventConverter) RegisterEvent(e event.Event) *EventConverter {
 }
 
 // find a pointer to a struct of the event's type to be used for converting.
-func (c *EventConverter) find(tn event.TypeName) (event.Event, error) {
+func (c *EventConverter) find(tn event.PayloadTypeName) (event.Payload, error) {
 	evt, found := c.events[tn]
 	if !found {
 		return nil, errors.Errorf("no event registered for type name \"%s\"", tn)
 	}
 
 	// Create a new instance
-	ret := reflect.ValueOf(reflect.New(evt).Interface()).Elem().Interface().(event.Event)
+	ret := reflect.ValueOf(reflect.New(evt).Interface()).Elem().Interface().(event.Payload)
 
 	// Create a pointer since most decoders require pointer values.
-	evtPtr := reflect.New(reflect.TypeOf(ret)).Interface().(event.Event)
+	evtPtr := reflect.New(reflect.TypeOf(ret)).Interface().(event.Payload)
 	return evtPtr, nil
 }

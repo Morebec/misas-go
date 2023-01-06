@@ -47,7 +47,7 @@ const (
 // TypeNameFilter Represents a filter on the event type nam
 type TypeNameFilter struct {
 	Mode           TypeNameFilterMode
-	EventTypeNames []event.TypeName
+	EventTypeNames []event.PayloadTypeName
 }
 
 // ReadFromStreamOptions UpcastableEventPayload structure representing the options that can be used to read from a stream.
@@ -127,7 +127,7 @@ func WithReadingFilter(opts ...TypeNameFilterOption) ReadFromStreamOption {
 }
 
 // ExcludeEventTypeNames Allows specifying that only events of some given types should not be read.
-func ExcludeEventTypeNames(typeNames ...event.TypeName) TypeNameFilterOption {
+func ExcludeEventTypeNames(typeNames ...event.PayloadTypeName) TypeNameFilterOption {
 	return func(filter *TypeNameFilter) {
 		filter.EventTypeNames = typeNames
 		filter.Mode = Exclude
@@ -135,7 +135,7 @@ func ExcludeEventTypeNames(typeNames ...event.TypeName) TypeNameFilterOption {
 }
 
 // SelectEventTypeNames Allows specifying that only events that are of some given types should be read.
-func SelectEventTypeNames(typeNames ...event.TypeName) TypeNameFilterOption {
+func SelectEventTypeNames(typeNames ...event.PayloadTypeName) TypeNameFilterOption {
 	return func(filter *TypeNameFilter) {
 		filter.EventTypeNames = typeNames
 		filter.Mode = Select
