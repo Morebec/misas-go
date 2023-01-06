@@ -45,7 +45,7 @@ func TestInMemoryBus_Send(t *testing.T) {
 	bus := NewInMemoryBus()
 	bus.RegisterHandler(runUnitTestCommandTypeName, runUnitTestCommandHandler{})
 
-	events, err := bus.Send(context.Background(), Command{Payload: runUnitTestCommandPayload{}})
+	events, err := bus.Send(context.Background(), New(runUnitTestCommandPayload{}))
 	assert.Nil(t, err)
 	assert.Nil(t, events)
 }

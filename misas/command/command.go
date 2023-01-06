@@ -32,6 +32,19 @@ type Payload interface {
 	TypeName() PayloadTypeName
 }
 
+// New returns a command with a given payload.
+func New(p Payload) Command {
+	return NewWithMetadata(p, nil)
+}
+
+// NewWithMetadata returns a command with a payload and some given metadata
+func NewWithMetadata(p Payload, m misas.Metadata) Command {
+	return Command{
+		Payload:  p,
+		Metadata: m,
+	}
+}
+
 // Handler is a service responsible for executing the business logic associated with a given Command.
 type Handler interface {
 	// Handle a Command in a given context.Context and returns an optional response pertaining to the handling
