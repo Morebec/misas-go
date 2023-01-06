@@ -2,6 +2,7 @@ package errors
 
 import (
 	"errors"
+	"fmt"
 )
 
 // NotFoundCode expresses that a resource was not found.
@@ -9,6 +10,9 @@ const NotFoundCode = "not_found"
 
 // AlreadyExists expresses that a resource already existed when it was expected not to.
 const AlreadyExists = "already_exists"
+
+// InternalErrorCode is a generic code to represent std internal errors  that do not provide codes of their own.
+const InternalErrorCode = "internal_error"
 
 // SystemError Error represents an error
 type SystemError interface {
@@ -36,11 +40,77 @@ func (e Error) Code() string {
 }
 
 func (e Error) Error() string {
-	return e.Message
+	msg := e.Message
+	if msg == "" {
+		msg = e.Code()
+	}
+
+	if e.Cause != nil {
+		msg = fmt.Sprintf("%s: %s", msg, e.Cause.Error())
+	}
+
+	return msg
 }
 
 func (e Error) Unwrap() error {
 	return e.Cause
+}
+
+// Group Represents a Group of errors. These can be useful when performing validation, where we expect multiple errors
+// to happen.
+
+type Group struct {
+	code   string
+	Errors []error
+	Cause  error
+}
+
+func (g Group) Code() string {
+	return g.code
+}
+
+func (g Group) Error() string {
+	count := len(g.Errors)
+	switch count {
+	case 0:
+		return "no errors"
+	case 1:
+		return g.Errors[0].Error()
+	default:
+		return fmt.Sprintf("%s, and %d other error(s)", g.Errors[0].Error(), count-1)
+	}
+}
+
+func (g Group) HasErrors() bool {
+	return len(g.Errors) != 0
+}
+
+// WithError returns a new instance of this group with a new error appended to it.
+func (g Group) WithError(err error) Group {
+	g.Errors = append(g.Errors, err)
+	return g
+}
+
+func (g Group) Unwrap() error {
+	return g.Cause
+}
+
+// NewGroup returns a new group of errors
+func NewGroup(code string, errs ...error) Group {
+	return Group{
+		code:   code,
+		Errors: errs,
+		Cause:  nil,
+	}
+}
+
+// WrapAsGroup similar to Wrap but the resulting error is a Group
+func WrapAsGroup(code string, cause error, errs ...error) Group {
+	return Group{
+		code:   code,
+		Errors: errs,
+		Cause:  cause,
+	}
 }
 
 // New returns a new error with code.
