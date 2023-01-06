@@ -20,12 +20,12 @@ import (
 	"testing"
 )
 
-const runUnitTestCommandTypeName TypeName = "unit_test.run"
+const runUnitTestCommandTypeName PayloadTypeName = "unit_test.run"
 
-type runUnitTestCommand struct {
+type runUnitTestCommandPayload struct {
 }
 
-func (r runUnitTestCommand) TypeName() TypeName {
+func (r runUnitTestCommandPayload) TypeName() PayloadTypeName {
 	return runUnitTestCommandTypeName
 }
 
@@ -45,7 +45,7 @@ func TestInMemoryBus_Send(t *testing.T) {
 	bus := NewInMemoryBus()
 	bus.RegisterHandler(runUnitTestCommandTypeName, runUnitTestCommandHandler{})
 
-	events, err := bus.Send(context.Background(), runUnitTestCommand{})
+	events, err := bus.Send(context.Background(), Command{Payload: runUnitTestCommandPayload{}})
 	assert.Nil(t, err)
 	assert.Nil(t, events)
 }

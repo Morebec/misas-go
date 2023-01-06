@@ -23,42 +23,31 @@ import (
 type Bus interface {
 
 	// RegisterHandler Registers a new Handler for a given Command with the bus.
-	RegisterHandler(t TypeName, h Handler)
+	// If a handler was already registered for a given command, it should be replaced by the new one provided.
+	RegisterHandler(t PayloadTypeName, h Handler)
 
 	// Send a Command to its Handler for processing and returns a potential payload acting as a fulfillment result.
 	// The fulfillment result might be the identity of the resource/concept introduced in the system, an identifier
 	// representing a location/read model where the result of the command's fulfilment can be obtained.
+	// if no handler could be found for the given command, an error should be returned.
 	Send(ctx context.Context, c Command) (any, error)
 }
 
-// InMemoryBusOption represents an option to configure the behaviour of the InMemoryBus at construction time.
-type InMemoryBusOption func(bus *InMemoryBus)
-
-// WithHandler allows registering a Command Handler to a Command for the InMemoryBus.
-func WithHandler(ct TypeName, h Handler) InMemoryBusOption {
-	return func(bus *InMemoryBus) {
-		bus.RegisterHandler(ct, h)
-	}
-}
-
 // InMemoryBus is an implementation of a command.Bus that sends command to handlers in memory.
-// The processing of the commands is performed synchronously in the same memory space.
+// The processing of the commands by their handlers is performed synchronously in the same memory space.
 type InMemoryBus struct {
-	handlers map[TypeName]Handler
+	handlers map[PayloadTypeName]Handler
 }
 
 // NewInMemoryBus allows constructing an InMemoryBus.
-func NewInMemoryBus(opts ...InMemoryBusOption) *InMemoryBus {
+func NewInMemoryBus() *InMemoryBus {
 	bus := &InMemoryBus{
-		handlers: map[TypeName]Handler{},
-	}
-	for _, opt := range opts {
-		opt(bus)
+		handlers: map[PayloadTypeName]Handler{},
 	}
 	return bus
 }
 
-func (cb *InMemoryBus) RegisterHandler(t TypeName, h Handler) {
+func (cb *InMemoryBus) RegisterHandler(t PayloadTypeName, h Handler) {
 	cb.handlers[t] = h
 }
 
@@ -72,26 +61,28 @@ func (cb *InMemoryBus) Send(ctx context.Context, c Command) (any, error) {
 	return events, nil
 }
 
+// handles a command by finding its resolver.
 func (cb *InMemoryBus) handleCommand(ctx context.Context, c Command) (any, error) {
 
-	handler, err := cb.resolveHandler(c)
+	handler, err := cb.resolveHandler(c.Payload.TypeName())
 	if err != nil {
-		err = errors.Wrapf(err, "failed handling command \"%s\"", c.TypeName())
+		err = errors.Wrapf(err, "failed handling command \"%s\"", c.Payload.TypeName())
 		// Command should always be resolved! This is a critical error!
 		panic(err)
 	}
 
 	events, err := handler.Handle(ctx, c)
 	if err != nil {
-		err = errors.Wrapf(err, "failed handling command \"%s\"", c.TypeName())
+		err = errors.Wrapf(err, "failed handling command \"%s\"", c.Payload.TypeName())
 		return nil, err
 	}
 	return events, nil
 }
 
-func (cb *InMemoryBus) resolveHandler(c Command) (Handler, error) {
-	if handler, found := cb.handlers[c.TypeName()]; !found {
-		return nil, errors.Errorf("no handler found for command \"%s\"", c.TypeName())
+// resolves the handler associated with a certain command type.
+func (cb *InMemoryBus) resolveHandler(ptn PayloadTypeName) (Handler, error) {
+	if handler, found := cb.handlers[ptn]; !found {
+		return nil, errors.Errorf("no handler found for command \"%s\"", ptn)
 	} else {
 		return handler, nil
 	}

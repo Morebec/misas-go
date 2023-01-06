@@ -36,8 +36,8 @@ func (sub *Subsystem) IsEnvironment(environment Environment) bool {
 }
 
 // RegisterCommandHandler registers a command.Command and its command.Handler with the system.
-func (sub *Subsystem) RegisterCommandHandler(c command.Command, h command.Handler) *Subsystem {
-	sub.System.CommandBus.RegisterHandler(c.TypeName(), h)
+func (sub *Subsystem) RegisterCommandHandler(tn command.PayloadTypeName, h command.Handler) *Subsystem {
+	sub.System.CommandBus.RegisterHandler(tn, h)
 	return sub
 }
 

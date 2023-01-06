@@ -29,7 +29,7 @@ func TestHandlerFunc_Handle(t *testing.T) {
 		return nil, nil
 	})
 
-	_, _ = h.Handle(context.Background(), nil)
+	_, _ = h.Handle(context.Background(), Command{})
 
 	assert.Equal(t, 5, v)
 }

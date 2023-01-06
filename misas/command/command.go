@@ -14,14 +14,22 @@
 
 package command
 
-import "context"
+import (
+	"context"
+	"github.com/morebec/misas-go/misas"
+)
 
-// TypeName Represents the unique type name of a Command for serialization and discriminatory purposes.
-type TypeName string
+// PayloadTypeName Represents the unique type name of a Command's Payload for serialization and discriminatory purposes.
+type PayloadTypeName string
 
 // Command intent by an agent (human or machine) to perform a state change in a system.
-type Command interface {
-	TypeName() TypeName
+type Command struct {
+	Payload  Payload
+	Metadata misas.Metadata
+}
+
+type Payload interface {
+	TypeName() PayloadTypeName
 }
 
 // Handler is a service responsible for executing the business logic associated with a given Command.

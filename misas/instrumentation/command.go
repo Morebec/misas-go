@@ -27,7 +27,7 @@ type OpenTelemetryCommandBusDecorator struct {
 	Tracer *SystemTracer
 }
 
-func (b *OpenTelemetryCommandBusDecorator) RegisterHandler(t command.TypeName, h command.Handler) {
+func (b *OpenTelemetryCommandBusDecorator) RegisterHandler(t command.PayloadTypeName, h command.Handler) {
 	b.Bus.RegisterHandler(t, func() command.HandlerFunc {
 		return func(ctx context.Context, c command.Command) (any, error) {
 			ctx, span := b.Tracer.Start(ctx, fmt.Sprintf("%s.handle", t))
@@ -50,7 +50,7 @@ func (b *OpenTelemetryCommandBusDecorator) Send(ctx context.Context, c command.C
 	ctx, span := b.Tracer.Start(ctx, "commandBus.Send")
 	defer span.End()
 
-	span.SetAttributes(attribute.String("command.typeName", string(c.TypeName())))
+	span.SetAttributes(attribute.String("command.typeName", string(c.Payload.TypeName())))
 
 	fulfillmentResult, err := b.Bus.Send(ctx, c)
 	if err != nil {

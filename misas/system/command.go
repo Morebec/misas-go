@@ -41,6 +41,6 @@ type CommandConfigurator struct {
 }
 
 func (c CommandConfigurator) HandledBy(h command.Handler) CommandConfigurator {
-	c.system.CommandBus.RegisterHandler(c.command.TypeName(), h)
+	c.system.CommandBus.RegisterHandler(c.command.Payload.TypeName(), h)
 	return c
 }

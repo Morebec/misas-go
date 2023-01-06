@@ -29,7 +29,7 @@ import (
 type createAccount struct {
 }
 
-func (c createAccount) TypeName() command.TypeName {
+func (c createAccount) TypeName() command.PayloadTypeName {
 	return "account.create"
 }
 
@@ -47,7 +47,7 @@ func TestScenario(t *testing.T) {
 			func(m *system.Subsystem) {
 				// m.RegisterEventHandler().Handles(accountCreated{})
 				m.RegisterEvent(accountCreated{})
-				m.RegisterCommandHandler(createAccount{}, command.HandlerFunc(func(ctx context.Context, c command.Command) (any, error) {
+				m.RegisterCommandHandler(createAccount{}.TypeName(), command.HandlerFunc(func(ctx context.Context, c command.Command) (any, error) {
 					payload, err := m.System.EventConverter.ToEventPayload(accountCreated{})
 					if err != nil {
 						return nil, err
@@ -73,7 +73,9 @@ func TestScenario(t *testing.T) {
 			CurrentDateIs(aClock.Now()),
 		),
 		When(
-			Command(createAccount{}),
+			Command(command.Command{
+				Payload: createAccount{},
+			}),
 			// Query(),
 			// Event(),
 			// PredictionOccurs(),
