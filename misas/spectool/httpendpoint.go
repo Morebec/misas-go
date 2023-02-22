@@ -31,7 +31,7 @@ type HTTPEndpoint struct {
 	Request   DataType              `hcl:"request,block"`
 	Responses HTTPEndpointResponses `hcl:"responses,block"`
 
-	Annots Annotations `hcl:"annotations,optional"`
+	Annots Annotations `hcl:"annotations,block,optional"`
 	Src    specter.Source
 }
 

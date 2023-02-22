@@ -14,7 +14,7 @@ type StructField struct {
 
 	// Annotations are used to tag a field with specific data to indicate additional information about the field.
 	// One useful tag is the personal_data tag that indicates that this field contains personal information.
-	Annotations Annotations `hcl:"annotations,optional"`
+	Annotations Annotations `hcl:"annotations,block,optional"`
 }
 
 type Struct struct {
@@ -23,7 +23,7 @@ type Struct struct {
 	Fields []StructField `hcl:"field,block"`
 	Src    specter.Source
 
-	Annots Annotations `hcl:"annotations,optional"`
+	Annots Annotations `hcl:"annotations,block,optional"`
 }
 
 func (s *Struct) Annotations() Annotations {
