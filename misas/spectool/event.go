@@ -15,7 +15,7 @@ type EventField struct {
 
 	// Annotations are used to tag a field with specific data to indicate additional information about the field.
 	// One useful tag is the personal_data tag that indicates that this field contains personal information.
-	Annotations []string `hcl:"annotations,optional"`
+	Annotations Annotations `hcl:"annotations,optional"`
 }
 
 type Event struct {

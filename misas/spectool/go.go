@@ -603,12 +603,12 @@ func (c GoCodeGenerator) Process(ctx specter.ProcessingContext) ([]specter.Proce
 
 	goMod, err := FindGoMod(systemSpec)
 	if err != nil {
-		return nil, errors.Wrap(err, "go processor failed")
+		return nil, err
 	}
 
 	tree, err := BuildGoPackageTree(goMod)
 	if err != nil {
-		return nil, errors.Wrap(err, "go processor failed")
+		return nil, err
 	}
 
 	gCtx := &GoProcessingContext{
@@ -633,7 +633,7 @@ func (c GoCodeGenerator) Process(ctx specter.ProcessingContext) ([]specter.Proce
 			}
 
 			if err := fun(gCtx, misasDep); err != nil {
-				return nil, errors.Wrap(err, "go processor failed")
+				return nil, err
 			}
 		}
 	}
@@ -644,7 +644,7 @@ func (c GoCodeGenerator) Process(ctx specter.ProcessingContext) ([]specter.Proce
 	for _, gf := range gCtx.PackageTree.GeneratedFilesRecursive() {
 		code, err := RenderGeneratedFile(*gf)
 		if err != nil {
-			return nil, errors.Wrap(err, "go processor failed")
+			return nil, err
 		}
 		outputFiles = append(outputFiles, specter.ProcessingOutput{
 			Name: gf.Path,
@@ -667,7 +667,7 @@ const {{ .StructName }}TypeName string = "{{ .TypeName }}"
 // {{ .StructName }} {{ .Description }}
 type {{ .StructName }} struct {
 	{{ range $field := .Fields }}
-		// {{ $field.Description }} {{ if $field.Annots.HasKey "personal_data" }}
+		// {{ $field.Description }} {{ if $field.Annotations.HasKey "personal_data" }}
 		// NOTE: This field contains personal data{{ end }}
 		{{ $field.Name | AsExportedGoName }} {{ if $field.Nullable }}*{{ end }}{{ $field.Type | AsResolvedGoType }} {{ $field.Name | AsJsonAnnotation }}
 	{{ end }}
@@ -787,7 +787,7 @@ const {{ .StructName }}TypeName command.PayloadTypeName = "{{ .TypeName }}"
 // {{ .StructName }} {{ .Description }}
 type {{ .StructName }} struct {
 	{{ range $field := .Fields }}
-		// {{ $field.Description }} {{ if $field.Annots.HasKey "personal_data" }}
+		// {{ $field.Description }} {{ if $field.Annotations.HasKey "personal_data" }}
 		// NOTE: This field contains personal data{{ end }}
 		{{ $field.Name | AsExportedGoName }} {{ if $field.Nullable }}*{{ end }}{{ $field.Type | AsResolvedGoType }} {{ $field.Name | AsJsonAnnotation }}
 	{{ end }}
@@ -844,7 +844,7 @@ const {{ .StructName }}TypeName query.PayloadTypeName = "{{ .TypeName }}"
 // {{ .StructName }} {{ .Description }}
 type {{ .StructName }} struct {
 	{{ range $field := .Fields }}
-		// {{ $field.Description }} {{ if $field.Annots.HasKey "personal_data" }}
+		// {{ $field.Description }} {{ if $field.Annotations.HasKey "personal_data" }}
 		// NOTE: This field contains personal data{{ end }}
 		{{ $field.Name | AsExportedGoName }} {{ if $field.Nullable }}*{{ end }}{{ $field.Type | AsResolvedGoType }} {{ $field.Name | AsJsonAnnotation }}
 	{{ end }}
@@ -901,7 +901,7 @@ const {{ .StructName }}TypeName event.PayloadTypeName = "{{ .TypeName }}"
 // {{ .StructName }} {{ .Description }}
 type {{ .StructName }} struct {
 	{{ range $field := .Fields }}
-		// {{ $field.Description }} {{ if $field.Annots.HasKey "personal_data" }}
+		// {{ $field.Description }} {{ if $field.Annotations.HasKey "personal_data" }}
 		// NOTE: This field contains personal data{{ end }}
 		{{ $field.Name | AsExportedGoName }} {{ if $field.Nullable }}*{{ end }}{{ $field.Type | AsResolvedGoType }} {{ $field.Name | AsJsonAnnotation }}
 	{{ end }}
