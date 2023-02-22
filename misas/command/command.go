@@ -16,6 +16,7 @@ package command
 
 import (
 	"context"
+	"github.com/google/uuid"
 	"github.com/morebec/misas-go/misas"
 )
 
@@ -24,6 +25,7 @@ type PayloadTypeName string
 
 // Command intent by an agent (human or machine) to perform a state change in a system.
 type Command struct {
+	ID       string
 	Payload  Payload
 	Metadata misas.Metadata
 }
@@ -40,6 +42,7 @@ func New(p Payload) Command {
 // NewWithMetadata returns a command with a payload and some given metadata
 func NewWithMetadata(p Payload, m misas.Metadata) Command {
 	return Command{
+		ID:       uuid.NewString(),
 		Payload:  p,
 		Metadata: m,
 	}

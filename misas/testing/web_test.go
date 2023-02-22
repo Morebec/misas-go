@@ -12,4 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package domain
+package testing
+
+import (
+	"github.com/morebec/misas-go/misas/httpapi"
+	"net/http"
+	"testing"
+)
+
+func Test_main(t *testing.T) {
+
+	ws := httpapi.NewWebServer(
+		httpapi.WithGetEndpoint("/", func(r *http.Request) httpapi.EndpointResponse {
+			return httpapi.NewSuccessResponse("hello world")
+		}),
+	)
+
+	if err := ws.ListenAndServe(); err != nil {
+		panic(err)
+	}
+}

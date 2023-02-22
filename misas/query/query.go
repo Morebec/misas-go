@@ -16,7 +16,7 @@ package query
 
 import "github.com/morebec/misas-go/misas"
 
-// PayloadTypeName TypeName Represents the unique type name of a Query for serialization and discriminatory purposes.
+// PayloadTypeName name Represents the unique type name of a Query for serialization and discriminatory purposes.
 type PayloadTypeName string
 
 type Payload interface {

@@ -1,7 +1,8 @@
 package httpapi
 
 import (
-	"github.com/morebec/misas-go/misas/errors"
+	"github.com/morebec/go-errors/errors"
+	"net/http"
 	"reflect"
 	"testing"
 )
@@ -13,18 +14,19 @@ func TestNewInternalError(t *testing.T) {
 	tests := []struct {
 		testName string
 		given    args
-		expect   Response
+		expect   EndpointResponse
 	}{
 		{
 			testName: "new internal error",
 			given: args{
 				err: errors.NewWithMessage(errors.NotFoundCode, "resource xyz not found"),
 			},
-			expect: Response{
-				Status: Failure,
-				Data:   nil,
+			expect: EndpointResponse{
+				StatusCode: http.StatusInternalServerError,
+				Status:     Failure,
+				Data:       nil,
 				Error: &Error{
-					Type:    InternalError,
+					Type:    InternalErrorResponseType,
 					Message: "resource xyz not found",
 					Data:    nil,
 				},
@@ -33,8 +35,8 @@ func TestNewInternalError(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.testName, func(t *testing.T) {
-			if got := NewInternalError(tt.given.err); !reflect.DeepEqual(got, tt.expect) {
-				t.Errorf("NewInternalError() = %v, expect %v", got, tt.expect)
+			if got := NewInternalErrorResponse(tt.given.err); !reflect.DeepEqual(got, tt.expect) {
+				t.Errorf("NewInternalErrorResponse() = %v, expect %v", got, tt.expect)
 			}
 		})
 	}
@@ -47,17 +49,18 @@ func TestNewSuccessResponse(t *testing.T) {
 	tests := []struct {
 		testName string
 		given    args
-		expect   Response
+		expect   EndpointResponse
 	}{
 		{
 			testName: "new success response",
 			given: args{
 				data: 123,
 			},
-			expect: Response{
-				Status: Success,
-				Data:   123,
-				Error:  nil,
+			expect: EndpointResponse{
+				StatusCode: http.StatusOK,
+				Status:     Success,
+				Data:       123,
+				Error:      nil,
 			},
 		},
 	}
@@ -79,7 +82,7 @@ func TestNewFailureResponse(t *testing.T) {
 	tests := []struct {
 		testName string
 		given    args
-		expect   Response
+		expect   EndpointResponse
 	}{
 		{
 			testName: "",
@@ -88,9 +91,10 @@ func TestNewFailureResponse(t *testing.T) {
 				message:   "the unit test failed",
 				data:      123,
 			},
-			expect: Response{
-				Status: Failure,
-				Data:   nil,
+			expect: EndpointResponse{
+				StatusCode: http.StatusConflict,
+				Status:     Failure,
+				Data:       nil,
 				Error: &Error{
 					Type:    "unit-test-failed",
 					Message: "the unit test failed",
@@ -115,16 +119,17 @@ func TestNewErrorResponse(t *testing.T) {
 	tests := []struct {
 		testName string
 		given    GivenArgs
-		expect   Response
+		expect   EndpointResponse
 	}{
 		{
 			testName: "test new error response",
 			given: GivenArgs{
 				err: errors.NewWithMessage(errors.NotFoundCode, "resource xyz not found"),
 			},
-			expect: Response{
-				Status: Failure,
-				Data:   nil,
+			expect: EndpointResponse{
+				StatusCode: http.StatusNotFound,
+				Status:     Failure,
+				Data:       nil,
 				Error: &Error{
 					Type:    errors.NotFoundCode,
 					Message: "resource xyz not found",
