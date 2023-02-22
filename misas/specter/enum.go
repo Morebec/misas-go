@@ -13,6 +13,11 @@ type Enum struct {
 	Values   []EnumValue `hcl:"value,block"`
 	BaseType DataType    `hcl:"type"`
 	Src      specter.Source
+	Annots   Annotations `hcl:"annotations,optional"`
+}
+
+func (e *Enum) Annotations() Annotations {
+	return e.Annots
 }
 
 func (e *Enum) Name() specter.SpecificationName {
@@ -20,7 +25,7 @@ func (e *Enum) Name() specter.SpecificationName {
 }
 
 func (e *Enum) Type() specter.SpecificationType {
-	return "event"
+	return "enum"
 }
 
 func (e *Enum) Description() string {

@@ -21,7 +21,12 @@ type Command struct {
 	Nam    string         `hcl:"name,label"`
 	Desc   string         `hcl:"description"`
 	Fields []CommandField `hcl:"field,block"`
+	Annots Annotations    `hcl:"annotations,optional"`
 	Src    specter.Source
+}
+
+func (c *Command) Annotations() Annotations {
+	return c.Annots
 }
 
 func (c *Command) Name() specter.SpecificationName {

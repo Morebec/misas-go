@@ -23,6 +23,11 @@ type Event struct {
 	Desc   string       `hcl:"description"`
 	Fields []EventField `hcl:"field,block"`
 	Src    specter.Source
+	Annots Annotations `hcl:"annotations,optional"`
+}
+
+func (e *Event) Annotations() Annotations {
+	return e.Annots
 }
 
 func (e *Event) Name() specter.SpecificationName {

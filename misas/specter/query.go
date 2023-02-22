@@ -22,6 +22,12 @@ type Query struct {
 	Desc   string       `hcl:"description"`
 	Fields []QueryField `hcl:"field,block"`
 	Src    specter.Source
+
+	Annots Annotations `hcl:"annotations,optional"`
+}
+
+func (q *Query) Annotations() Annotations {
+	return q.Annots
 }
 
 func (q *Query) Name() specter.SpecificationName {
@@ -29,7 +35,7 @@ func (q *Query) Name() specter.SpecificationName {
 }
 
 func (q *Query) Type() specter.SpecificationType {
-	return "q"
+	return "query"
 }
 
 func (q *Query) Description() string {

@@ -7,6 +7,12 @@ type System struct {
 	SDescription string   `hcl:"description"`
 	SpecSources  []string `hcl:"sources"`
 	Src          specter.Source
+
+	Annots Annotations `hcl:"annotations,optional"`
+}
+
+func (s *System) Annotations() Annotations {
+	return s.Annots
 }
 
 func (s *System) Name() specter.SpecificationName {

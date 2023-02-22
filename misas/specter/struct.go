@@ -22,31 +22,37 @@ type Struct struct {
 	Desc   string        `hcl:"description"`
 	Fields []StructField `hcl:"field,block"`
 	Src    specter.Source
+
+	Annots Annotations `hcl:"annotations,optional"`
 }
 
-func (c *Struct) Name() specter.SpecificationName {
-	return specter.SpecificationName(c.Nam)
+func (s *Struct) Annotations() Annotations {
+	return s.Annots
 }
 
-func (c *Struct) Type() specter.SpecificationType {
-	return "command"
+func (s *Struct) Name() specter.SpecificationName {
+	return specter.SpecificationName(s.Nam)
 }
 
-func (c *Struct) Description() string {
-	return c.Desc
+func (s *Struct) Type() specter.SpecificationType {
+	return "struct"
 }
 
-func (c *Struct) Source() specter.Source {
-	return c.Src
+func (s *Struct) Description() string {
+	return s.Desc
 }
 
-func (c *Struct) SetSource(s specter.Source) {
-	c.Src = s
+func (s *Struct) Source() specter.Source {
+	return s.Src
 }
 
-func (c *Struct) Dependencies() []specter.SpecificationName {
+func (s *Struct) SetSource(src specter.Source) {
+	s.Src = src
+}
+
+func (s *Struct) Dependencies() []specter.SpecificationName {
 	var deps []specter.SpecificationName
-	for _, f := range c.Fields {
+	for _, f := range s.Fields {
 		if DataType(f.Type).IsUserDefined() {
 			deps = append(deps, specter.SpecificationName(f.Type))
 		}

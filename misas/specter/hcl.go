@@ -12,7 +12,7 @@ type HCLFileConfig struct {
 	Structs   []*Struct                   `hcl:"struct,block"`
 }
 
-func (c HCLFileConfig) Specs() []specter.Specification {
+func (c HCLFileConfig) Specifications() []specter.Specification {
 	var grp []specter.Specification
 
 	for _, s := range c.Systems {
