@@ -301,3 +301,38 @@ An interesting strategy is to used Delayed processing combined with event proces
 ## Projection Processing
 
 ### Projectors & Failures
+
+
+### HTTP API
+
+#### Define an Endpoint
+```go
+func HomeEndpoint(r chi.Router) {
+	r.Get("/", func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(500)
+		render.JSON(writer, request, NewSuccessResponse(nil))
+	})
+}
+```
+
+#### Start HTTP Web Server
+```go
+func StartFrontendAPI() error {
+	r := chi.NewRouter()
+	r.Use(middleware.AllowContentType("application/json"))
+	r.Use(middleware.CleanPath)
+	r.Use(middleware.RealIP)
+	r.Use(middleware.Recoverer)
+
+	r.Use(middleware.Timeout(time.Second * 60))
+	r.Use(render.SetContentType(render.ContentTypeJSON))
+
+	HomeEndpoint(r)
+
+	if err := http.ListenAndServe(":3000", r); err != nil {
+		return err
+	}
+	return nil
+}
+
+```

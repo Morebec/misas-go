@@ -1,4 +1,4 @@
-package misas
+package specter
 
 import (
 	"regexp"

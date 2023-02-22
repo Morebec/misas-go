@@ -1,8 +1,8 @@
-package misas
+package specter
 
 import (
 	"fmt"
-	"github.com/morebec/misas-go/specter"
+	"github.com/morebec/specter"
 )
 
 type EventField struct {
@@ -25,11 +25,11 @@ type Event struct {
 	Src    specter.Source
 }
 
-func (e *Event) Name() specter.Name {
-	return specter.Name(e.Nam)
+func (e *Event) Name() specter.SpecificationName {
+	return specter.SpecificationName(e.Nam)
 }
 
-func (e *Event) Type() specter.Type {
+func (e *Event) Type() specter.SpecificationType {
 	return "event"
 }
 
@@ -45,19 +45,19 @@ func (e *Event) SetSource(s specter.Source) {
 	e.Src = s
 }
 
-func (e *Event) Dependencies() []specter.Name {
-	var deps []specter.Name
+func (e *Event) Dependencies() []specter.SpecificationName {
+	var deps []specter.SpecificationName
 	for _, f := range e.Fields {
 		if f.Type.IsUserDefined() {
-			deps = append(deps, specter.Name(f.Type))
+			deps = append(deps, specter.SpecificationName(f.Type))
 		}
 	}
 	return deps
 }
 
-func EventsMustHaveDateTimeField() specter.LinterFunc {
-	return func(specs specter.SpecGroup) specter.LinterResultSet {
-		events := specs.SelectType(specter.Type("event"))
+func EventsMustHaveDateTimeField() specter.SpecificationLinterFunc {
+	return func(specs specter.SpecificationGroup) specter.LinterResultSet {
+		events := specs.SelectType(specter.SpecificationType("event"))
 		var result specter.LinterResultSet
 		for _, e := range events {
 			evt := e.(*Event)

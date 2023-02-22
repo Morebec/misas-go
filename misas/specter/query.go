@@ -1,8 +1,6 @@
-package misas
+package specter
 
-import (
-	"github.com/morebec/misas-go/specter"
-)
+import "github.com/morebec/specter"
 
 type QueryField struct {
 	Name        string   `hcl:"name,label"`
@@ -26,31 +24,31 @@ type Query struct {
 	Src    specter.Source
 }
 
-func (query *Query) Name() specter.Name {
-	return specter.Name(query.Nam)
+func (q *Query) Name() specter.SpecificationName {
+	return specter.SpecificationName(q.Nam)
 }
 
-func (query *Query) Type() specter.Type {
-	return "query"
+func (q *Query) Type() specter.SpecificationType {
+	return "q"
 }
 
-func (query *Query) Description() string {
-	return query.Desc
+func (q *Query) Description() string {
+	return q.Desc
 }
 
-func (query *Query) Source() specter.Source {
-	return query.Src
+func (q *Query) Source() specter.Source {
+	return q.Src
 }
 
-func (query *Query) SetSource(s specter.Source) {
-	query.Src = s
+func (q *Query) SetSource(s specter.Source) {
+	q.Src = s
 }
 
-func (query *Query) Dependencies() []specter.Name {
-	var deps []specter.Name
-	for _, f := range query.Fields {
-		if DataType(f.Type).IsUserDefined() {
-			deps = append(deps, specter.Name(f.Type))
+func (q *Query) Dependencies() []specter.SpecificationName {
+	var deps []specter.SpecificationName
+	for _, f := range q.Fields {
+		if f.Type.IsUserDefined() {
+			deps = append(deps, specter.SpecificationName(f.Type))
 		}
 	}
 	return deps

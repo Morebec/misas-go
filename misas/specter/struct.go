@@ -1,10 +1,8 @@
-package misas
+package specter
 
-import (
-	"github.com/morebec/misas-go/specter"
-)
+import "github.com/morebec/specter"
 
-type CommandField struct {
+type StructField struct {
 	Name        string   `hcl:"name,label"`
 	Description string   `hcl:"description"`
 	Type        DataType `hcl:"type"`
@@ -19,38 +17,38 @@ type CommandField struct {
 	Annotations []string `hcl:"annotations,optional"`
 }
 
-type Command struct {
-	Nam    string         `hcl:"name,label"`
-	Desc   string         `hcl:"description"`
-	Fields []CommandField `hcl:"field,block"`
+type Struct struct {
+	Nam    string        `hcl:"name,label"`
+	Desc   string        `hcl:"description"`
+	Fields []StructField `hcl:"field,block"`
 	Src    specter.Source
 }
 
-func (c *Command) Name() specter.Name {
-	return specter.Name(c.Nam)
+func (c *Struct) Name() specter.SpecificationName {
+	return specter.SpecificationName(c.Nam)
 }
 
-func (c *Command) Type() specter.Type {
+func (c *Struct) Type() specter.SpecificationType {
 	return "command"
 }
 
-func (c *Command) Description() string {
+func (c *Struct) Description() string {
 	return c.Desc
 }
 
-func (c *Command) Source() specter.Source {
+func (c *Struct) Source() specter.Source {
 	return c.Src
 }
 
-func (c *Command) SetSource(s specter.Source) {
+func (c *Struct) SetSource(s specter.Source) {
 	c.Src = s
 }
 
-func (c *Command) Dependencies() []specter.Name {
-	var deps []specter.Name
+func (c *Struct) Dependencies() []specter.SpecificationName {
+	var deps []specter.SpecificationName
 	for _, f := range c.Fields {
 		if DataType(f.Type).IsUserDefined() {
-			deps = append(deps, specter.Name(f.Type))
+			deps = append(deps, specter.SpecificationName(f.Type))
 		}
 	}
 	return deps
