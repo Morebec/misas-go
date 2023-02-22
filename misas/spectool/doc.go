@@ -9,4 +9,4 @@
 // - Enums
 // - Structs
 // - HttpAPIEndpoints
-package specter
+package spectool

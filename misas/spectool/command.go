@@ -1,8 +1,8 @@
-package specter
+package spectool
 
 import "github.com/morebec/specter"
 
-type StructField struct {
+type CommandField struct {
 	Name        string   `hcl:"name,label"`
 	Description string   `hcl:"description"`
 	Type        DataType `hcl:"type"`
@@ -17,42 +17,41 @@ type StructField struct {
 	Annotations []string `hcl:"annotations,optional"`
 }
 
-type Struct struct {
-	Nam    string        `hcl:"name,label"`
-	Desc   string        `hcl:"description"`
-	Fields []StructField `hcl:"field,block"`
+type Command struct {
+	Nam    string         `hcl:"name,label"`
+	Desc   string         `hcl:"description"`
+	Fields []CommandField `hcl:"field,block"`
+	Annots Annotations    `hcl:"annotations,optional"`
 	Src    specter.Source
-
-	Annots Annotations `hcl:"annotations,optional"`
 }
 
-func (s *Struct) Annotations() Annotations {
-	return s.Annots
+func (c *Command) Annotations() Annotations {
+	return c.Annots
 }
 
-func (s *Struct) Name() specter.SpecificationName {
-	return specter.SpecificationName(s.Nam)
+func (c *Command) Name() specter.SpecificationName {
+	return specter.SpecificationName(c.Nam)
 }
 
-func (s *Struct) Type() specter.SpecificationType {
-	return "struct"
+func (c *Command) Type() specter.SpecificationType {
+	return "command"
 }
 
-func (s *Struct) Description() string {
-	return s.Desc
+func (c *Command) Description() string {
+	return c.Desc
 }
 
-func (s *Struct) Source() specter.Source {
-	return s.Src
+func (c *Command) Source() specter.Source {
+	return c.Src
 }
 
-func (s *Struct) SetSource(src specter.Source) {
-	s.Src = src
+func (c *Command) SetSource(s specter.Source) {
+	c.Src = s
 }
 
-func (s *Struct) Dependencies() []specter.SpecificationName {
+func (c *Command) Dependencies() []specter.SpecificationName {
 	var deps []specter.SpecificationName
-	for _, f := range s.Fields {
+	for _, f := range c.Fields {
 		if DataType(f.Type).IsUserDefined() {
 			deps = append(deps, specter.SpecificationName(f.Type))
 		}

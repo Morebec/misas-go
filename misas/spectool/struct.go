@@ -1,8 +1,8 @@
-package specter
+package spectool
 
 import "github.com/morebec/specter"
 
-type QueryField struct {
+type StructField struct {
 	Name        string   `hcl:"name,label"`
 	Description string   `hcl:"description"`
 	Type        DataType `hcl:"type"`
@@ -17,43 +17,43 @@ type QueryField struct {
 	Annotations []string `hcl:"annotations,optional"`
 }
 
-type Query struct {
-	Nam    string       `hcl:"name,label"`
-	Desc   string       `hcl:"description"`
-	Fields []QueryField `hcl:"field,block"`
+type Struct struct {
+	Nam    string        `hcl:"name,label"`
+	Desc   string        `hcl:"description"`
+	Fields []StructField `hcl:"field,block"`
 	Src    specter.Source
 
 	Annots Annotations `hcl:"annotations,optional"`
 }
 
-func (q *Query) Annotations() Annotations {
-	return q.Annots
+func (s *Struct) Annotations() Annotations {
+	return s.Annots
 }
 
-func (q *Query) Name() specter.SpecificationName {
-	return specter.SpecificationName(q.Nam)
+func (s *Struct) Name() specter.SpecificationName {
+	return specter.SpecificationName(s.Nam)
 }
 
-func (q *Query) Type() specter.SpecificationType {
-	return "query"
+func (s *Struct) Type() specter.SpecificationType {
+	return "struct"
 }
 
-func (q *Query) Description() string {
-	return q.Desc
+func (s *Struct) Description() string {
+	return s.Desc
 }
 
-func (q *Query) Source() specter.Source {
-	return q.Src
+func (s *Struct) Source() specter.Source {
+	return s.Src
 }
 
-func (q *Query) SetSource(s specter.Source) {
-	q.Src = s
+func (s *Struct) SetSource(src specter.Source) {
+	s.Src = src
 }
 
-func (q *Query) Dependencies() []specter.SpecificationName {
+func (s *Struct) Dependencies() []specter.SpecificationName {
 	var deps []specter.SpecificationName
-	for _, f := range q.Fields {
-		if f.Type.IsUserDefined() {
+	for _, f := range s.Fields {
+		if DataType(f.Type).IsUserDefined() {
 			deps = append(deps, specter.SpecificationName(f.Type))
 		}
 	}

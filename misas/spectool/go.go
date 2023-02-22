@@ -1,4 +1,4 @@
-package specter
+package spectool
 
 import (
 	"bufio"
