@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-func SpecificationTool() *specter.Specter {
+func New(mode specter.ExecutionMode) *specter.Specter {
 	return specter.New(
 		specter.WithLogger(specter.NewColoredOutputLogger(specter.ColoredOutputLoggerConfig{
 			EnableColors: true,
@@ -27,6 +27,6 @@ func SpecificationTool() *specter.Specter {
 		specter.WithOutputProcessors(specter.NewWriteFilesProcessor(specter.WriteFileOutputsProcessorConfig{
 			UseRegistry: true,
 		})),
-		specter.WithExecutionMode(specter.FullMode),
+		specter.WithExecutionMode(mode),
 	)
 }
