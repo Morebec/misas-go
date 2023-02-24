@@ -478,6 +478,10 @@ func ResolveGoType(ctx *GoSnippetGenerationContext, t DataType) (GoType, error) 
 			return NewGoType("nil", Null, ""), nil
 		case Identifier:
 			return NewGoType("string", Identifier, ""), nil
+		case Any:
+			return NewGoType("any", Any, ""), nil
+		case Char:
+			return NewGoType("rune", Char, ""), nil
 		case String:
 			return NewGoType("string", String, ""), nil
 		case Bool:
@@ -492,8 +496,8 @@ func ResolveGoType(ctx *GoSnippetGenerationContext, t DataType) (GoType, error) 
 			return NewGoType("time.Time", DateTime, "time"), nil
 		case Duration:
 			return NewGoType("time.Duration", Duration, "time"), nil
-		case Char:
-			return NewGoType("rune", Char, ""), nil
+		default:
+			return NewGoType("any", Any, ""), nil
 		}
 
 		if t.IsContainer() {

@@ -11,6 +11,11 @@ command "user.register" {
     type = "identifier"
   }
 
+  field "anything" {
+    description = "Optional ID of the work item to be registered. If none is provided, one will be generated."
+    type = "any"
+  }
+
   meta "gen:go:name" {
     value = "RegisterUserCommand"
   }
