@@ -32,7 +32,12 @@ type HTTPEndpoint struct {
 	Responses HTTPEndpointResponses `hcl:"responses,block"`
 
 	Annots Annotations `hcl:"annotations,optional"`
+	Meta   Metadata    `hcl:"meta,block"`
 	Src    specter.Source
+}
+
+func (he *HTTPEndpoint) Metadata() Metadata {
+	return he.Meta
 }
 
 func (he *HTTPEndpoint) Name() specter.SpecificationName {

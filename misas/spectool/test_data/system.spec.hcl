@@ -10,6 +10,10 @@ command "user.register" {
     description = "Optional ID of the work item to be registered. If none is provided, one will be generated."
     type = "identifier"
   }
+
+  meta "gen:go:name" {
+    value = "RegisterUserCommand"
+  }
 }
 
 event "user.registered" {
@@ -24,4 +28,5 @@ event "user.registered" {
     description = "date and time at which the work item was registered."
     type = "dateTime"
   }
+
 }

@@ -369,7 +369,7 @@ func GenerateCodeForSpec(ctx *GoSnippetGenerationContext, s MisasSpecification) 
 	// Determine file to write the snippet to
 	fileName := "generated.go"
 	if s.Annotations().Has("gen:go:fileName") {
-		fileName = s.Annotations().GetOrDefault("gen:go:fileName", fileName).(string)
+		fileName = s.Metadata().GetOrDefault("gen:go:fileName", fileName).AsString()
 	} else if commandAggregateName := extractAggregateName(s.Name()); commandAggregateName != "" {
 		fileName = commandAggregateName + "_" + fileName
 	}
@@ -689,7 +689,7 @@ func (c {{ .StructName }}) PayloadTypeName() string {
 
 	// Generate Go Code Snippet
 	templateData := TemplateData{
-		StructName:  strct.Annotations().GetOrDefault("gen:go:name", strcase.ToCamel(string(strct.Name()))).(string),
+		StructName:  strct.Metadata().GetOrDefault("gen:go:name", strcase.ToCamel(string(strct.Name()))).AsString(),
 		Description: strings.ReplaceAll(strings.TrimSuffix(strct.Description(), "\n"), "\n", "\n// "),
 		TypeName:    string(strct.Name()),
 		Fields:      strct.Fields,
@@ -753,7 +753,7 @@ func IsValid{{.EnumName}}(v {{ .EnumName }}) bool {
 	// Generate Go Code Snippet
 	//goland:noinspection GoRedundantConversion
 	templateData := TemplateData{
-		EnumName:     enum.Annotations().GetOrDefault("gen:go:name", strcase.ToCamel(string(enum.Name()))).(string),
+		EnumName:     enum.Metadata().GetOrDefault("gen:go:name", strcase.ToCamel(string(enum.Name()))).AsString(),
 		Description:  strings.ReplaceAll(strings.TrimSuffix(enum.Description(), "\n"), "\n", "\n// "),
 		TypeName:     string(enum.Name()),
 		EnumBaseType: DataType(enum.BaseType),
@@ -809,7 +809,7 @@ func (c {{ .StructName }}) TypeName() command.PayloadTypeName {
 
 	// Generate Go Code Snippet
 	templateData := TemplateData{
-		StructName:  cmd.Annotations().GetOrDefault("gen:go:name", strcase.ToCamel(string(cmd.Name()))+"Command").(string),
+		StructName:  cmd.Metadata().GetOrDefault("gen:go:name", strcase.ToCamel(string(cmd.Name()))+"Command").AsString(),
 		Description: strings.ReplaceAll(strings.TrimSuffix(cmd.Description(), "\n"), "\n", "\n// "),
 		TypeName:    string(cmd.Name()),
 		Fields:      cmd.Fields,
@@ -866,7 +866,7 @@ func (c {{ .StructName }}) TypeName() query.PayloadTypeName {
 
 	// Generate Go Code Snippet
 	templateData := TemplateData{
-		StructName:  query.Annotations().GetOrDefault("gen:go:name", strcase.ToCamel(string(query.Name()))+"Query").(string),
+		StructName:  query.Metadata().GetOrDefault("gen:go:name", strcase.ToCamel(string(query.Name()))+"Query").AsString(),
 		Description: strings.ReplaceAll(strings.TrimSuffix(query.Description(), "\n"), "\n", "\n// "),
 		TypeName:    string(query.Name()),
 		Fields:      query.Fields,
@@ -923,7 +923,7 @@ func (c {{ .StructName }}) TypeName() event.PayloadTypeName {
 
 	// Generate Go Code Snippet
 	templateData := TemplateData{
-		StructName:  evt.Annotations().GetOrDefault("gen:go:name", strcase.ToCamel(string(evt.Name()))+"Event").(string),
+		StructName:  evt.Metadata().GetOrDefault("gen:go:name", strcase.ToCamel(string(evt.Name()))+"Event").AsString(),
 		Description: strings.ReplaceAll(strings.TrimSuffix(evt.Description(), "\n"), "\n", "\n// "),
 		TypeName:    string(evt.Name()),
 		Fields:      evt.Fields,
@@ -1006,7 +1006,7 @@ func {{ .EndpointFuncName }}(r chi.Router, bus {{ if eq .Method "POST" }}command
 	// Generate Go Code Snippet
 	//goland:noinspection GoRedundantConversion
 	templateData := TemplateData{
-		EndpointFuncName: endpoint.Annotations().GetOrDefault("gen:go:name", strcase.ToLowerCamel(string(endpoint.Name()))).(string),
+		EndpointFuncName: endpoint.Metadata().GetOrDefault("gen:go:name", strcase.ToLowerCamel(string(endpoint.Name()))).AsString(),
 		TypeName:         string(endpoint.Name()),
 		Description:      strings.ReplaceAll(strings.TrimSuffix(endpoint.Description(), "\n"), "\n", "\n// "),
 		Path:             endpoint.Path,

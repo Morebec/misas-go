@@ -9,6 +9,11 @@ type System struct {
 	Src          specter.Source
 
 	Annots Annotations `hcl:"annotations,optional"`
+	Meta   Metadata    `hcl:"meta,block"`
+}
+
+func (s *System) Metadata() Metadata {
+	return s.Meta
 }
 
 func (s *System) Annotations() Annotations {

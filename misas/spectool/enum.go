@@ -14,6 +14,11 @@ type Enum struct {
 	BaseType DataType    `hcl:"type"`
 	Src      specter.Source
 	Annots   Annotations `hcl:"annotations,optional"`
+	Meta     Metadata    `hcl:"meta,block"`
+}
+
+func (e *Enum) Metadata() Metadata {
+	return e.Meta
 }
 
 func (e *Enum) Annotations() Annotations {

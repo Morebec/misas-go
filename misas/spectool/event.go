@@ -16,6 +16,7 @@ type EventField struct {
 	// Annotations are used to tag a field with specific data to indicate additional information about the field.
 	// One useful tag is the personal_data tag that indicates that this field contains personal information.
 	Annotations Annotations `hcl:"annotations,optional"`
+	Metadata    Metadata    `hcl:"meta,block"`
 }
 
 type Event struct {
@@ -24,6 +25,11 @@ type Event struct {
 	Fields []EventField `hcl:"field,block"`
 	Src    specter.Source
 	Annots Annotations `hcl:"annotations,optional"`
+	Meta   Metadata    `hcl:"meta,block"`
+}
+
+func (e *Event) Metadata() Metadata {
+	return e.Meta
 }
 
 func (e *Event) Annotations() Annotations {

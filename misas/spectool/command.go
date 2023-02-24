@@ -1,6 +1,9 @@
 package spectool
 
-import "github.com/morebec/specter"
+import (
+	"github.com/morebec/misas-go/misas"
+	"github.com/morebec/specter"
+)
 
 type CommandField struct {
 	Name        string   `hcl:"name,label"`
@@ -15,6 +18,8 @@ type CommandField struct {
 	// Annotations are used to tag a field with specific data to indicate additional information about the field.
 	// One useful tag is the personal_data tag that indicates that this field contains personal information.
 	Annotations Annotations `hcl:"annotations,optional"`
+
+	Metadata misas.Metadata
 }
 
 type Command struct {
@@ -22,7 +27,12 @@ type Command struct {
 	Desc   string         `hcl:"description"`
 	Fields []CommandField `hcl:"field,block"`
 	Annots Annotations    `hcl:"annotations,optional"`
+	Meta   Metadata       `hcl:"meta,block"`
 	Src    specter.Source
+}
+
+func (c *Command) Metadata() Metadata {
+	return c.Meta
 }
 
 func (c *Command) Annotations() Annotations {
