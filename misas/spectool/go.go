@@ -496,8 +496,6 @@ func ResolveGoType(ctx *GoSnippetGenerationContext, t DataType) (GoType, error) 
 			return NewGoType("time.Time", DateTime, "time"), nil
 		case Duration:
 			return NewGoType("time.Duration", Duration, "time"), nil
-		default:
-			return NewGoType("any", Any, ""), nil
 		}
 
 		if t.IsContainer() {
