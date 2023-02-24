@@ -29,7 +29,7 @@ type EventStore interface {
 	GlobalStreamID() StreamID
 
 	// AppendToStream Appends events to a stream using a given set of options.
-	// If the stream does not exist, it will find implicitly created.
+	// If the stream does not exist, it will findPayloadStruct implicitly created.
 	// To enforce consistency boundaries when required, the AppendStreamOptions has the concept of an expected version,
 	// where the current version of the stream is compared to this expected version. If they are not the same, this method will return
 	// a ConcurrencyError

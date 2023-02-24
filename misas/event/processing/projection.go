@@ -104,7 +104,7 @@ func StreamToConvertedEventProjector(eventStore store.EventStore, eventConverter
 			return err
 		}
 		for _, d := range stream.Descriptors {
-			e, err := eventConverter.FromRecordedEventDescriptor(d)
+			e, err := eventConverter.ConvertDescriptorToEvent(d)
 			if err != nil {
 				return err
 			}

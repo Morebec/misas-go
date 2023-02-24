@@ -393,7 +393,7 @@ func TestUpcastableEventMetadata_ValueAt(t *testing.T) {
 		want any
 	}{
 		{
-			name: "find actual value",
+			name: "findPayloadStruct actual value",
 			m: UpcastableEventMetadata{
 				"aKey": "aValue",
 			},
@@ -404,7 +404,7 @@ func TestUpcastableEventMetadata_ValueAt(t *testing.T) {
 			want: "aValue",
 		},
 		{
-			name: "find default value",
+			name: "findPayloadStruct default value",
 			m:    UpcastableEventMetadata{},
 			args: args{
 				k:            "aKey",

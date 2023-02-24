@@ -48,7 +48,7 @@ func TestScenario(t *testing.T) {
 				// m.RegisterEventHandler().Handles(accountCreated{})
 				m.RegisterEvent(accountCreated{})
 				m.RegisterCommandHandler(createAccount{}.TypeName(), command.HandlerFunc(func(ctx context.Context, c command.Command) (any, error) {
-					payload, err := m.System.EventConverter.ToEventPayload(event.New(accountCreated{}))
+					payload, err := m.System.EventConverter.ConvertEventToDescriptor(event.New(accountCreated{}))
 					if err != nil {
 						return nil, err
 					}

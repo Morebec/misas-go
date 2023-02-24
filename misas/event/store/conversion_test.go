@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"github.com/morebec/misas-go/misas/event"
 	"github.com/stretchr/testify/assert"
-	"reflect"
 	"testing"
 	"time"
 )
@@ -39,25 +38,18 @@ func (l eventLoaded) TypeName() event.PayloadTypeName {
 	return eventLoadedTypeName
 }
 
-func TestEventLoader_Load(t *testing.T) {
-	type fields struct {
-		events map[event.PayloadTypeName]reflect.Type
-	}
+func TestEventLoader_ConvertDescriptorToEvent(t *testing.T) {
 	type args struct {
 		descriptor RecordedEventDescriptor
 	}
 	tests := []struct {
 		name    string
-		fields  fields
 		args    args
 		want    event.Event
 		wantErr assert.ErrorAssertionFunc
 	}{
 		{
-			name: "",
-			fields: fields{
-				events: map[event.PayloadTypeName]reflect.Type{},
-			},
+			name: "default",
 			args: args{
 				descriptor: RecordedEventDescriptor{
 					ID:       "#000",
@@ -102,76 +94,62 @@ func TestEventLoader_Load(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := &EventConverter{
-				events: tt.fields.events,
-			}
-			e.RegisterEvent(eventLoaded{})
-			got, err := e.FromRecordedEventDescriptor(tt.args.descriptor)
-			if !tt.wantErr(t, err, fmt.Sprintf("FromRecordedEventDescriptor(%v)", tt.args.descriptor)) {
+			e := NewEventConverter()
+			e.RegisterEventPayload(eventLoaded{})
+			got, err := e.ConvertDescriptorToEvent(tt.args.descriptor)
+			if !tt.wantErr(t, err, fmt.Sprintf("ConvertDescriptorToEvent(%v)", tt.args.descriptor)) {
 				return
 			}
-			assert.Equalf(t, tt.want, got, "FromRecordedEventDescriptor(%v)", tt.args.descriptor)
+			assert.Equalf(t, tt.want, got, "ConvertDescriptorToEvent(%v)", tt.args.descriptor)
 		})
 	}
 }
 
-func TestEventConverter_ToEventPayload(t *testing.T) {
-	type fields struct {
-		events map[event.PayloadTypeName]reflect.Type
-	}
+func TestEventConverter_ConvertEventToDescriptor(t *testing.T) {
 	type args struct {
 		evt event.Event
 	}
 	tests := []struct {
 		name    string
-		fields  fields
 		args    args
-		want    DescriptorPayload
+		want    EventDescriptor
 		wantErr assert.ErrorAssertionFunc
 	}{
 		{
-			name: "",
-			fields: fields{
-				events: nil,
-			},
+			name: "default",
 			args: args{
 				evt: event.New(eventLoaded{
 					AString: "string",
-					AnInt:   50,
+					AnInt:   1,
 					AFloat:  50.25,
 					ABool:   true,
 					ARune:   'A',
-					AMap:    map[string]any{"hello": "world"},
-					AList:   []string{"hello", "world"},
+					AMap: map[string]any{
+						"hello": "world",
+					},
+					AList: []string{
+						"hello",
+						"world",
+					},
 				}),
 			},
-			want: DescriptorPayload{
-				"AString": "string",
-				"AnInt":   50.0,  // marshalling as json causes numbers which are translated to float64
-				"AFloat":  50.25, // marshalling as json causes numbers which are translated to float64
-				"ABool":   true,
-				"ARune":   65.0, // marshalling as json causes numbers which are translated to float64
-				"AMap": map[string]any{
-					"hello": "world",
-				},
-				"AList": []any{
-					"hello",
-					"world",
-				},
+			want: EventDescriptor{
+				ID:       "",
+				TypeName: "",
+				Payload:  nil,
+				Metadata: nil,
 			},
 			wantErr: assert.NoError,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			e := &EventConverter{
-				events: tt.fields.events,
-			}
-			got, err := e.ToEventPayload(tt.args.evt)
-			if !tt.wantErr(t, err, fmt.Sprintf("ToEventPayload(%v)", tt.args.evt)) {
+			c := NewEventConverter()
+			got, err := c.ConvertEventToDescriptor(tt.args.evt)
+			if !tt.wantErr(t, err, fmt.Sprintf("ConvertEventToDescriptor(%v)", tt.args.evt)) {
 				return
 			}
-			assert.Equalf(t, tt.want, got, "ToEventPayload(%v)", tt.args.evt)
+			assert.Equalf(t, tt.want, got, "ConvertEventToDescriptor(%v)", tt.args.evt)
 		})
 	}
 }

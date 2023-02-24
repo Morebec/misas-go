@@ -16,8 +16,10 @@ package store
 
 import (
 	"encoding/json"
+	"fmt"
+	"github.com/google/uuid"
+	"github.com/morebec/go-errors/errors"
 	"github.com/morebec/misas-go/misas/event"
-	"github.com/pkg/errors"
 	"reflect"
 )
 
@@ -30,59 +32,129 @@ type EventConverter struct {
 
 func NewEventConverter() *EventConverter {
 	ec := &EventConverter{map[event.PayloadTypeName]reflect.Type{}}
-	ec.RegisterEvent(StreamTruncatedEvent{})
+	ec.RegisterEventPayload(StreamTruncatedEvent{})
 	return ec
 }
 
-// ToEventPayload converts an event.Event to an DescriptorPayload to be used with an EventDescriptor.
-func (c *EventConverter) ToEventPayload(evt event.Event) (DescriptorPayload, error) {
-	marshal, err := json.Marshal(evt.Payload)
+const EventConversionErrorCode = "event_conversion_failed"
+
+// ConvertEventToDescriptor converts an event.Event to an DescriptorPayload to be used with an EventDescriptor.
+func (c *EventConverter) ConvertEventToDescriptor(evt event.Event) (EventDescriptor, error) {
+	payload, err := c.ConvertEventPayloadToDescriptorPayload(evt.Payload)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed converting event \"%s\" to DescriptorPayload", evt.Payload.TypeName())
+		return EventDescriptor{}, err
+	}
+
+	descriptor := EventDescriptor{
+		ID:       EventID(uuid.NewString()),
+		TypeName: evt.Payload.TypeName(),
+		Payload:  payload,
+		Metadata: nil,
+	}
+
+	return descriptor, nil
+}
+
+// ConvertEventPayloadToDescriptorPayload converts an event.Payload to a DescriptorPayload
+func (c *EventConverter) ConvertEventPayloadToDescriptorPayload(p event.Payload) (DescriptorPayload, error) {
+
+	// attempt registering if it was not already done before
+	c.RegisterEventPayload(p)
+
+	marshal, err := json.Marshal(p)
+	if err != nil {
+		return nil, errors.WrapWithMessage(err, EventConversionErrorCode, fmt.Sprintf(
+			"failed converting event \"%s\" to DescriptorPayload",
+			p.TypeName(),
+		))
 	}
 
 	var payload DescriptorPayload
 	if err := json.Unmarshal(marshal, &payload); err != nil {
-		return nil, errors.Wrapf(err, "failed converting event \"%s\" to DescriptorPayload", evt.Payload.TypeName())
+		return nil, errors.WrapWithMessage(err, EventConversionErrorCode, fmt.Sprintf(
+			"failed converting event \"%s\" to DescriptorPayload",
+			p.TypeName(),
+		))
 	}
 
 	return payload, nil
 }
 
-// FromRecordedEventDescriptor loads an event.Event from a RecordedEventDescriptor
-func (c *EventConverter) FromRecordedEventDescriptor(descriptor RecordedEventDescriptor) (event.Event, error) {
-	evt, err := c.find(descriptor.TypeName)
-	if err != nil {
-		return event.Event{}, errors.Wrapf(err, "failed loading event \"%s/%s\" in memory", descriptor.TypeName, descriptor.ID)
+// ConvertEventListToDescriptorSlice converts a list of event.Event to a list of EventDescriptor.
+func (c *EventConverter) ConvertEventListToDescriptorSlice(l event.List) []EventDescriptor {
+	var descriptors []EventDescriptor
+	for _, e := range l {
+		d, err := c.ConvertEventToDescriptor(e)
+		if err != nil {
+			return nil
+		}
+		descriptors = append(descriptors, d)
 	}
 
-	marshal, err := json.Marshal(descriptor.Payload)
+	return descriptors
+}
+
+// ConvertDescriptorToEvent loads an event.Event from a RecordedEventDescriptor
+func (c *EventConverter) ConvertDescriptorToEvent(d RecordedEventDescriptor) (event.Event, error) {
+
+	p, err := c.ConvertDescriptorPayloadToEventPayload(d.Payload, d.TypeName)
 	if err != nil {
-		return event.Event{}, errors.Wrapf(err, "failed loading event \"%s/%s\" in memory", descriptor.TypeName, descriptor.ID)
+		return event.Event{}, errors.WrapWithMessage(
+			err,
+			EventConversionErrorCode,
+			fmt.Sprintf("failed converting descriptor %s to %s", d.ID, d.TypeName),
+		)
+	}
+
+	metadata := d.Metadata
+	metadata.Set("id", string(d.ID))
+	metadata.Set("streamId", string(d.StreamID))
+	metadata.Set("sequenceNumber", int64(d.SequenceNumber))
+	metadata.Set("version", int64(d.Version))
+	metadata.Set("recordedAt", d.RecordedAt)
+
+	return event.NewWithMetadata(p, metadata), nil
+}
+
+// ConvertDescriptorPayloadToEventPayload converts a DescriptorPayload to an event.Payload
+func (c *EventConverter) ConvertDescriptorPayloadToEventPayload(dp DescriptorPayload, t event.PayloadTypeName) (event.Payload, error) {
+	evt, err := c.findPayloadStruct(t)
+	if err != nil {
+		return nil, errors.WrapWithMessage(
+			err,
+			EventConversionErrorCode,
+			fmt.Sprintf("failed converting descriptor to %s", t),
+		)
+	}
+
+	marshal, err := json.Marshal(dp)
+	if err != nil {
+		return nil, errors.WrapWithMessage(
+			err,
+			EventConversionErrorCode,
+			fmt.Sprintf("failed converting descriptor to %s", t),
+		)
 	}
 
 	if err := json.Unmarshal(marshal, evt); err != nil {
-		return event.Event{}, errors.Wrapf(err, "failed loading event \"%s/%s\" in memory", descriptor.TypeName, descriptor.ID)
+		return nil, errors.WrapWithMessage(
+			err,
+			EventConversionErrorCode,
+			fmt.Sprintf("failed converting descriptor to %s", t),
+		)
 	}
 
 	// Convert *event.Event to event.Event
 	payload := reflect.ValueOf(evt).Elem().Interface().(event.Payload)
 
-	metadata := descriptor.Metadata
-	metadata.Set("id", string(descriptor.ID))
-	metadata.Set("streamId", string(descriptor.StreamID))
-	metadata.Set("sequenceNumber", int64(descriptor.SequenceNumber))
-	metadata.Set("version", int64(descriptor.Version))
-	metadata.Set("recordedAt", descriptor.RecordedAt)
-
-	return event.NewWithMetadata(payload, metadata), nil
+	return payload, nil
 }
 
-// StreamSliceToEventList converts a StreamSlice to an event.List.
-func (c *EventConverter) StreamSliceToEventList(slice StreamSlice) (event.List, error) {
+// ConvertStreamSliceToEventList converts a StreamSlice to an event.List.
+func (c *EventConverter) ConvertStreamSliceToEventList(slice StreamSlice) (event.List, error) {
 	var events event.List
 	for _, d := range slice.Descriptors {
-		e, err := c.FromRecordedEventDescriptor(d)
+		e, err := c.ConvertDescriptorToEvent(d)
 		if err != nil {
 			return nil, err
 		}
@@ -91,8 +163,8 @@ func (c *EventConverter) StreamSliceToEventList(slice StreamSlice) (event.List, 
 	return events, nil
 }
 
-// RegisterEvent registers an event and its type with this converter.
-func (c *EventConverter) RegisterEvent(e event.Payload) *EventConverter {
+// RegisterEventPayload registers an event and its type with this converter.
+func (c *EventConverter) RegisterEventPayload(e event.Payload) *EventConverter {
 	if _, found := c.events[e.TypeName()]; found {
 		return c
 	}
@@ -107,11 +179,14 @@ func (c *EventConverter) RegisterEvent(e event.Payload) *EventConverter {
 	return c
 }
 
-// find a pointer to a struct of the event's type to be used for converting.
-func (c *EventConverter) find(tn event.PayloadTypeName) (event.Payload, error) {
+// findPayloadStruct a pointer to a struct of the event's type to be used for converting.
+func (c *EventConverter) findPayloadStruct(tn event.PayloadTypeName) (event.Payload, error) {
 	evt, found := c.events[tn]
 	if !found {
-		return nil, errors.Errorf("no event registered for type name \"%s\"", tn)
+		return nil, errors.NewWithMessage(
+			EventConversionErrorCode,
+			fmt.Sprintf("no event registered for type name \"%s\"", tn),
+		)
 	}
 
 	// Create a new instance

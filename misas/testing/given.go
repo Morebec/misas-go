@@ -70,7 +70,7 @@ func RecordedEvent(event event.Event, opts ...store.AppendToStreamOption) EventS
 	return func(id store.StreamID, scenario *Scenario, stage *Stage) {
 		stage.addStep(NewStep(fmt.Sprintf("recordEventToStream->%s", id), func(t assert.TestingT, scenario *Scenario, s *Stage) error {
 
-			payload, err := scenario.Service.EventConverter.ToEventPayload(event)
+			payload, err := scenario.Service.EventConverter.ConvertEventToDescriptor(event)
 			if err != nil {
 				return err
 			}

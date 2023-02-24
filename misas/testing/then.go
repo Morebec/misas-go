@@ -79,7 +79,7 @@ func ExactlyOneEvent(expectedEvent event.Event) HasRecordedOption {
 				return errors.Errorf("Failed asserting that event only one event was recorded in stream %s, got %d", id, len(actualEvents))
 			}
 
-			actualEvent, err := scenario.Service.EventConverter.FromRecordedEventDescriptor(actualEvents[0])
+			actualEvent, err := scenario.Service.EventConverter.ConvertDescriptorToEvent(actualEvents[0])
 			if err != nil {
 				return err
 			}
@@ -115,7 +115,7 @@ func ExactlyTheseEvents(expectedEvents ...event.Event) HasRecordedOption {
 
 			for _, expectedEvent := range expectedEvents {
 				for _, actualEventDescriptor := range actualEvents {
-					actualEvent, err := scenario.Service.EventConverter.FromRecordedEventDescriptor(actualEventDescriptor)
+					actualEvent, err := scenario.Service.EventConverter.ConvertDescriptorToEvent(actualEventDescriptor)
 					if err != nil {
 						return err
 					}

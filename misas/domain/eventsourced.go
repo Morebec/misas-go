@@ -83,7 +83,7 @@ func (r EventStoreRepository) Save(ctx context.Context, streamID store.StreamID,
 	var descriptors []store.EventDescriptor
 
 	for _, e := range events {
-		payload, err := r.eventConverter.ToEventPayload(e)
+		payload, err := r.eventConverter.ConvertEventToDescriptor(e)
 		if err != nil {
 			return operationFailed(err)
 		}
@@ -121,7 +121,7 @@ func (r EventStoreRepository) Load(ctx context.Context, streamID store.StreamID)
 
 	var events event.List
 	for _, d := range stream.Descriptors {
-		e, err := r.eventConverter.FromRecordedEventDescriptor(d)
+		e, err := r.eventConverter.ConvertDescriptorToEvent(d)
 		if err != nil {
 			return nil, 0, operationFailed(err)
 		}
