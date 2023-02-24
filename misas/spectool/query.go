@@ -14,7 +14,7 @@ type QueryField struct {
 
 	// Annotations are used to tag a field with specific data to indicate additional information about the field.
 	// One useful tag is the personal_data tag that indicates that this field contains personal information.
-	Annotations Annotations `hcl:"annotations,block,optional"`
+	Annotations Annotations `hcl:"annotations,optional"`
 }
 
 type Query struct {
@@ -23,7 +23,7 @@ type Query struct {
 	Fields []QueryField `hcl:"field,block"`
 	Src    specter.Source
 
-	Annots Annotations `hcl:"annotations,block,optional"`
+	Annots Annotations `hcl:"annotations,optional"`
 }
 
 func (q *Query) Annotations() Annotations {

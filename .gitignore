@@ -18,4 +18,5 @@ vendor/
 .vscode/
 .idea/
 
-.specs.json
+.specter.json
+*_generated.go

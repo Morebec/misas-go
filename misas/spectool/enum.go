@@ -13,7 +13,7 @@ type Enum struct {
 	Values   []EnumValue `hcl:"value,block"`
 	BaseType DataType    `hcl:"type"`
 	Src      specter.Source
-	Annots   Annotations `hcl:"annotations,block,optional"`
+	Annots   Annotations `hcl:"annotations,optional"`
 }
 
 func (e *Enum) Annotations() Annotations {

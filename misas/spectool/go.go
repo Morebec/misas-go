@@ -368,7 +368,7 @@ func GenerateCodeForSpec(ctx *GoSnippetGenerationContext, s MisasSpecification) 
 
 	// Determine file to write the snippet to
 	fileName := "generated.go"
-	if s.Annotations().HasKey("gen:go:fileName") {
+	if s.Annotations().Has("gen:go:fileName") {
 		fileName = s.Annotations().GetOrDefault("gen:go:fileName", fileName).(string)
 	} else if commandAggregateName := extractAggregateName(s.Name()); commandAggregateName != "" {
 		fileName = commandAggregateName + "_" + fileName
@@ -667,7 +667,7 @@ const {{ .StructName }}TypeName string = "{{ .TypeName }}"
 // {{ .StructName }} {{ .Description }}
 type {{ .StructName }} struct {
 	{{ range $field := .Fields }}
-		// {{ $field.Description }} {{ if $field.Annotations.HasKey "personal_data" }}
+		// {{ $field.Description }} {{ if $field.Annotations.Has "personal_data" }}
 		// NOTE: This field contains personal data{{ end }}
 		{{ $field.Name | AsExportedGoName }} {{ if $field.Nullable }}*{{ end }}{{ $field.Type | AsResolvedGoType }} {{ $field.Name | AsJsonAnnotation }}
 	{{ end }}
@@ -787,7 +787,7 @@ const {{ .StructName }}TypeName command.PayloadTypeName = "{{ .TypeName }}"
 // {{ .StructName }} {{ .Description }}
 type {{ .StructName }} struct {
 	{{ range $field := .Fields }}
-		// {{ $field.Description }} {{ if $field.Annotations.HasKey "personal_data" }}
+		// {{ $field.Description }} {{ if $field.Annotations.Has "personal_data" }}
 		// NOTE: This field contains personal data{{ end }}
 		{{ $field.Name | AsExportedGoName }} {{ if $field.Nullable }}*{{ end }}{{ $field.Type | AsResolvedGoType }} {{ $field.Name | AsJsonAnnotation }}
 	{{ end }}
@@ -844,7 +844,7 @@ const {{ .StructName }}TypeName query.PayloadTypeName = "{{ .TypeName }}"
 // {{ .StructName }} {{ .Description }}
 type {{ .StructName }} struct {
 	{{ range $field := .Fields }}
-		// {{ $field.Description }} {{ if $field.Annotations.HasKey "personal_data" }}
+		// {{ $field.Description }} {{ if $field.Annotations.Has "personal_data" }}
 		// NOTE: This field contains personal data{{ end }}
 		{{ $field.Name | AsExportedGoName }} {{ if $field.Nullable }}*{{ end }}{{ $field.Type | AsResolvedGoType }} {{ $field.Name | AsJsonAnnotation }}
 	{{ end }}
@@ -901,7 +901,7 @@ const {{ .StructName }}TypeName event.PayloadTypeName = "{{ .TypeName }}"
 // {{ .StructName }} {{ .Description }}
 type {{ .StructName }} struct {
 	{{ range $field := .Fields }}
-		// {{ $field.Description }} {{ if $field.Annotations.HasKey "personal_data" }}
+		// {{ $field.Description }} {{ if $field.Annotations.Has "personal_data" }}
 		// NOTE: This field contains personal data{{ end }}
 		{{ $field.Name | AsExportedGoName }} {{ if $field.Nullable }}*{{ end }}{{ $field.Type | AsResolvedGoType }} {{ $field.Name | AsJsonAnnotation }}
 	{{ end }}

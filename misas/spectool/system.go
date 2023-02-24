@@ -8,7 +8,7 @@ type System struct {
 	SpecSources  []string `hcl:"sources"`
 	Src          specter.Source
 
-	Annots Annotations `hcl:"annotations,block,optional"`
+	Annots Annotations `hcl:"annotations,optional"`
 }
 
 func (s *System) Annotations() Annotations {
