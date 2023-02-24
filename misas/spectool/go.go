@@ -368,7 +368,7 @@ func GenerateCodeForSpec(ctx *GoSnippetGenerationContext, s MisasSpecification) 
 
 	// Determine file to write the snippet to
 	fileName := "generated.go"
-	if s.Annotations().Has("gen:go:fileName") {
+	if s.Metadata().HasKey("gen:go:fileName") {
 		fileName = s.Metadata().GetOrDefault("gen:go:fileName", fileName).AsString()
 	} else if commandAggregateName := extractAggregateName(s.Name()); commandAggregateName != "" {
 		fileName = commandAggregateName + "_" + fileName

@@ -15,12 +15,15 @@ type MetadataEntry struct {
 type Metadata []MetadataEntry
 
 func (m Metadata) GetOrDefault(key string, defaultValue any) cty.Value {
-	for _, e := range m {
-		if e.Key == key {
-			if value, err := e.Value.Expr.Value(&hcl.EvalContext{}); err != nil {
-				panic(err)
-			} else {
-				return value
+	if m != nil {
+
+		for _, e := range m {
+			if e.Key == key {
+				if value, err := e.Value.Expr.Value(&hcl.EvalContext{}); err != nil {
+					panic(err)
+				} else {
+					return value
+				}
 			}
 		}
 	}
@@ -43,6 +46,17 @@ func (m Metadata) GetOrDefault(key string, defaultValue any) cty.Value {
 	} else {
 		return defVal
 	}
+}
+
+func (m Metadata) HasKey(key string) bool {
+	if m != nil {
+		for _, e := range m {
+			if e.Key == key {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 type MisasSpecification interface {
