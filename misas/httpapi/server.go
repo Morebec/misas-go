@@ -72,6 +72,10 @@ type EndpointGroupOption func(r chi.Router)
 func WithGetGroupEndpoint(pattern string, e EndpointFunc) EndpointGroupOption {
 	return func(r chi.Router) {
 		r.Get(pattern, endpointHTTPHandler(e))
+		// Add for preflights
+		r.Options(pattern, func(writer http.ResponseWriter, request *http.Request) {
+			writer.WriteHeader(http.StatusOK)
+		})
 	}
 }
 
@@ -79,6 +83,10 @@ func WithGetGroupEndpoint(pattern string, e EndpointFunc) EndpointGroupOption {
 func WithPostGroupEndpoint(pattern string, e EndpointFunc) EndpointGroupOption {
 	return func(r chi.Router) {
 		r.Post(pattern, endpointHTTPHandler(e))
+		// Add for preflights
+		r.Options(pattern, func(writer http.ResponseWriter, request *http.Request) {
+			writer.WriteHeader(http.StatusOK)
+		})
 	}
 }
 
