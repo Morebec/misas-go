@@ -1,12 +1,16 @@
 package httpapi
 
 import (
+	"context"
 	"fmt"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/render"
 	"github.com/morebec/go-errors/errors"
+	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"time"
 )
 
@@ -14,7 +18,7 @@ import (
 type WebServerOption func(w *WebServer)
 
 // WithPort allows specifying on which port the WebServer should be listening to.
-func WithPort(port int64) WebServerOption {
+func WithPort(port int) WebServerOption {
 	return WithAddr(fmt.Sprintf(":%d", port))
 }
 
@@ -28,7 +32,7 @@ func WithAddr(addr string) WebServerOption {
 // WithMiddleware appends one or more middlewares onto the Router stack.
 func WithMiddleware(middlewares ...func(http.Handler) http.Handler) WebServerOption {
 	return func(w *WebServer) {
-		w.Router.Use(middlewares...)
+		w.Router().Use(middlewares...)
 	}
 }
 
@@ -41,20 +45,20 @@ func WithHeartbeat(pattern string) WebServerOption {
 // WithGetEndpoint adds a GET EndpointFunc to the WebServer
 func WithGetEndpoint(pattern string, e EndpointFunc) WebServerOption {
 	return func(w *WebServer) {
-		w.Router.Get(pattern, endpointHTTPHandler(e))
+		w.Router().Get(pattern, endpointHTTPHandler(e))
 	}
 }
 
 // WithPostEndpoint adds a POST EndpointFunc to the WebServer
 func WithPostEndpoint(pattern string, e EndpointFunc) WebServerOption {
 	return func(w *WebServer) {
-		w.Router.Post(pattern, endpointHTTPHandler(e))
+		w.Router().Post(pattern, endpointHTTPHandler(e))
 	}
 }
 
 func WithGroup(opts ...EndpointGroupOption) WebServerOption {
 	return func(w *WebServer) {
-		w.Router.Group(func(r chi.Router) {
+		w.Router().Group(func(r chi.Router) {
 			for _, opt := range opts {
 				opt(r)
 			}
@@ -87,19 +91,28 @@ func UseGroupMiddleware(middlewares ...func(http.Handler) http.Handler) Endpoint
 
 // WebServer implementation of a WebServer that can serve as a base to implement HTTP API web servers.
 type WebServer struct {
-	Router chi.Router
-	addr   string
+	*http.Server
+	addr string
+}
+
+func (ws *WebServer) Router() chi.Router {
+	return ws.Server.Handler.(chi.Router)
 }
 
 func NewWebServer(opts ...WebServerOption) *WebServer {
+	router := chi.NewRouter()
 	ws := &WebServer{
-		addr: ":9090",
+		Server: &http.Server{
+			Addr:         ":9090",
+			Handler:      router,
+			ReadTimeout:  5 * time.Second,
+			WriteTimeout: 20 * time.Second,
+			IdleTimeout:  15 * time.Second,
+		},
 	}
 
-	ws.Router = chi.NewRouter()
-
 	// Add default WebServer middleware
-	ws.Router.Use(
+	router.Use(
 		middleware.RequestID,
 		middleware.CleanPath,
 		middleware.RealIP,
@@ -110,22 +123,57 @@ func NewWebServer(opts ...WebServerOption) *WebServer {
 		render.SetContentType(render.ContentTypeJSON),
 	)
 
+	// Add Not Found handler
+	router.NotFound(endpointHTTPHandler(func(r *EndpointRequest) EndpointResponse {
+		return NewFailureResponse(errors.NotFoundCode, "404 page not found", nil)
+	}))
+
 	for _, opt := range opts {
 		opt(ws)
 	}
 
-	// Add Not Found handler
-	ws.Router.NotFound(endpointHTTPHandler(func(r *EndpointRequest) EndpointResponse {
-		return NewFailureResponse(errors.NotFoundCode, "404 page not found", nil)
-	}))
-
 	return ws
 }
 
-// ListenAndServe listens on the TCP network address addr and then calls
-// Serve with handler to handle requests on incoming connections.
-func (w *WebServer) ListenAndServe() error {
-	return http.ListenAndServe(w.addr, w.Router)
+// Start helper method that allows starting the server and handling graceful shutdowns.
+func (ws *WebServer) Start() error {
+
+	// Channel that listens for requests to stop the server.
+	stopServerChan := make(chan bool, 1)
+
+	// Channel that listens for errors from the server.
+	errorChan := make(chan error, 1)
+
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, os.Interrupt)
+
+	// Start server
+	go func() {
+		if err := ws.ListenAndServe(); err != nil {
+			errorChan <- err
+		}
+	}()
+
+	select {
+	case err := <-errorChan:
+		log.Printf("failed starting server: %s \n", err.Error())
+		stopServerChan <- true
+
+	case <-shutdown:
+		stopServerChan <- true
+	}
+
+	// Wait for shutdown
+	_ = <-stopServerChan
+	// set up a cancellation context if shutting down the server hangs
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	ws.SetKeepAlivesEnabled(false)
+	if err := ws.Shutdown(ctx); err != nil {
+		return err
+	}
+	return nil
 }
 
 // EndpointFunc represents an endpoint to handle a request.
