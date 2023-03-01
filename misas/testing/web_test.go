@@ -21,7 +21,7 @@ import (
 
 func Test_main(t *testing.T) {
 
-	ws := httpapi.NewWebServer(
+	ws := httpapi.NewServer(
 		httpapi.WithGetEndpoint("/", func(r *httpapi.EndpointRequest) httpapi.EndpointResponse {
 			return httpapi.NewSuccessResponse("hello world")
 		}),

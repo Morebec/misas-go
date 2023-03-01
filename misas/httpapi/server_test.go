@@ -5,7 +5,7 @@ import (
 )
 
 func TestWebServer_Start(t *testing.T) {
-	ws := NewWebServer()
+	ws := NewServer()
 
 	if err := ws.Start(); err != nil {
 		panic(err)

@@ -12,8 +12,8 @@ func (t tracerProviderFunc) Tracer(name string, options ...trace.TracerOption) t
 	return t()
 }
 
-func EnableOpenTelemetryOnWebServer(tracer *SystemTracer, serverName string) httpapi.WebServerOption {
-	return func(w *httpapi.WebServer) {
+func EnableOpenTelemetryOnWebServer(tracer *SystemTracer, serverName string) httpapi.ServerOption {
+	return func(w *httpapi.Server) {
 		w.Router.Use(otelchi.Middleware(
 			serverName,
 			otelchi.WithChiRoutes(w.Router),

@@ -14,50 +14,50 @@ import (
 	"time"
 )
 
-// WebServerOption are functions that allow configuring a WebServer instance.
-type WebServerOption func(w *WebServer)
+// ServerOption are functions that allow configuring a Server instance.
+type ServerOption func(w *Server)
 
-// WithPort allows specifying on which port the WebServer should be listening to.
-func WithPort(port int) WebServerOption {
+// WithPort allows specifying on which port the Server should be listening to.
+func WithPort(port int) ServerOption {
 	return WithAddr(fmt.Sprintf(":%d", port))
 }
 
-// WithAddr allows specifying on TCP address the WebServer should be listening to.
-func WithAddr(addr string) WebServerOption {
-	return func(w *WebServer) {
+// WithAddr allows specifying on TCP address the Server should be listening to.
+func WithAddr(addr string) ServerOption {
+	return func(w *Server) {
 		w.addr = addr
 	}
 }
 
 // WithMiddleware appends one or more middlewares onto the Router stack.
-func WithMiddleware(middlewares ...func(http.Handler) http.Handler) WebServerOption {
-	return func(w *WebServer) {
+func WithMiddleware(middlewares ...func(http.Handler) http.Handler) ServerOption {
+	return func(w *Server) {
 		w.Router().Use(middlewares...)
 	}
 }
 
 // WithHeartbeat adds the Heartbeat endpoint middleware that is useful for setting up a path like /health that load balancers or
 // uptime testing external services can make a request before hitting any routes.
-func WithHeartbeat(pattern string) WebServerOption {
+func WithHeartbeat(pattern string) ServerOption {
 	return WithMiddleware(middleware.Heartbeat(pattern))
 }
 
-// WithGetEndpoint adds a GET EndpointFunc to the WebServer
-func WithGetEndpoint(pattern string, e EndpointFunc) WebServerOption {
-	return func(w *WebServer) {
+// WithGetEndpoint adds a GET EndpointFunc to the Server
+func WithGetEndpoint(pattern string, e EndpointFunc) ServerOption {
+	return func(w *Server) {
 		w.Router().Get(pattern, endpointHTTPHandler(e))
 	}
 }
 
-// WithPostEndpoint adds a POST EndpointFunc to the WebServer
-func WithPostEndpoint(pattern string, e EndpointFunc) WebServerOption {
-	return func(w *WebServer) {
+// WithPostEndpoint adds a POST EndpointFunc to the Server
+func WithPostEndpoint(pattern string, e EndpointFunc) ServerOption {
+	return func(w *Server) {
 		w.Router().Post(pattern, endpointHTTPHandler(e))
 	}
 }
 
-func WithGroup(opts ...EndpointGroupOption) WebServerOption {
-	return func(w *WebServer) {
+func WithGroup(opts ...EndpointGroupOption) ServerOption {
+	return func(w *Server) {
 		w.Router().Group(func(r chi.Router) {
 			for _, opt := range opts {
 				opt(r)
@@ -89,19 +89,23 @@ func UseGroupMiddleware(middlewares ...func(http.Handler) http.Handler) Endpoint
 	}
 }
 
-// WebServer implementation of a WebServer that can serve as a base to implement HTTP API web servers.
-type WebServer struct {
+// Server is an implementation that can be used as a base to implement HTTP API web servers.
+// It features
+// - chi.Router as its Router
+// - Server.Start method that allows to start the server and handle graceful shutdowns automatically.
+// - Fluent and simple Endpoint declaration API that accepts JSON compatible requests and responses according to MISAS.
+type Server struct {
 	*http.Server
 	addr string
 }
 
-func (ws *WebServer) Router() chi.Router {
-	return ws.Server.Handler.(chi.Router)
+func (s *Server) Router() chi.Router {
+	return s.Server.Handler.(chi.Router)
 }
 
-func NewWebServer(opts ...WebServerOption) *WebServer {
+func NewServer(opts ...ServerOption) *Server {
 	router := chi.NewRouter()
-	ws := &WebServer{
+	ws := &Server{
 		Server: &http.Server{
 			Addr:         ":9090",
 			Handler:      router,
@@ -111,7 +115,7 @@ func NewWebServer(opts ...WebServerOption) *WebServer {
 		},
 	}
 
-	// Add default WebServer middleware
+	// Add default Server middleware
 	router.Use(
 		middleware.RequestID,
 		middleware.CleanPath,
@@ -136,7 +140,7 @@ func NewWebServer(opts ...WebServerOption) *WebServer {
 }
 
 // Start helper method that allows starting the server and handling graceful shutdowns.
-func (ws *WebServer) Start() error {
+func (s *Server) Start() error {
 
 	// Channel that listens for requests to stop the server.
 	stopServerChan := make(chan bool, 1)
@@ -149,7 +153,7 @@ func (ws *WebServer) Start() error {
 
 	// Start server
 	go func() {
-		if err := ws.ListenAndServe(); err != nil {
+		if err := s.ListenAndServe(); err != nil {
 			errorChan <- err
 		}
 	}()
@@ -169,8 +173,8 @@ func (ws *WebServer) Start() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	ws.SetKeepAlivesEnabled(false)
-	if err := ws.Shutdown(ctx); err != nil {
+	s.SetKeepAlivesEnabled(false)
+	if err := s.Shutdown(ctx); err != nil {
 		return err
 	}
 	return nil
