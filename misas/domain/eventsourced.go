@@ -16,7 +16,6 @@ package domain
 
 import (
 	"context"
-	"github.com/google/uuid"
 	"github.com/morebec/misas-go/misas"
 	"github.com/morebec/misas-go/misas/event"
 	"github.com/morebec/misas-go/misas/event/store"
@@ -83,18 +82,15 @@ func (r EventStoreRepository) Save(ctx context.Context, streamID store.StreamID,
 	var descriptors []store.EventDescriptor
 
 	for _, e := range events {
-		payload, err := r.eventConverter.ConvertEventToDescriptor(e)
+		d, err := r.eventConverter.ConvertEventToDescriptor(e)
 		if err != nil {
 			return operationFailed(err)
 		}
 		m := r.metadataProvider(e)
 
-		descriptors = append(descriptors, store.EventDescriptor{
-			ID:       store.EventID(uuid.New().String()),
-			TypeName: e.Payload.TypeName(),
-			Payload:  payload,
-			Metadata: m,
-		})
+		d.Metadata = d.Metadata.Merge(m, false)
+
+		descriptors = append(descriptors, d)
 	}
 
 	if err := r.eventStore.AppendToStream(ctx, streamID, descriptors, store.WithExpectedVersion(expectedVersion)); err != nil {

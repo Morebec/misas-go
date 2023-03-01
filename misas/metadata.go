@@ -48,7 +48,7 @@ func (m Metadata) Has(k string) bool {
 	return found
 }
 
-// Merge Adds all the keys and values of the passed metadata to this metadata nad returns the result.
+// Merge Adds all the keys and values of the passed metadata to this metadata and returns the result.
 // if a key is present in both the value from the passed metadata will be used.
 func (m Metadata) Merge(om Metadata, overwriteKeys bool) Metadata {
 	if m == nil {

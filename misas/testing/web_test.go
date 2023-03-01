@@ -16,14 +16,13 @@ package testing
 
 import (
 	"github.com/morebec/misas-go/misas/httpapi"
-	"net/http"
 	"testing"
 )
 
 func Test_main(t *testing.T) {
 
 	ws := httpapi.NewWebServer(
-		httpapi.WithGetEndpoint("/", func(r *http.Request) httpapi.EndpointResponse {
+		httpapi.WithGetEndpoint("/", func(r *httpapi.EndpointRequest) httpapi.EndpointResponse {
 			return httpapi.NewSuccessResponse("hello world")
 		}),
 	)

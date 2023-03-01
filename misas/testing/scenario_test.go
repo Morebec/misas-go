@@ -48,17 +48,12 @@ func TestScenario(t *testing.T) {
 				// m.RegisterEventHandler().Handles(accountCreated{})
 				m.RegisterEvent(accountCreated{})
 				m.RegisterCommandHandler(createAccount{}.TypeName(), command.HandlerFunc(func(ctx context.Context, c command.Command) (any, error) {
-					payload, err := m.System.EventConverter.ConvertEventToDescriptor(event.New(accountCreated{}))
+					descriptor, err := m.System.EventConverter.ConvertEventToDescriptor(event.New(accountCreated{}))
 					if err != nil {
 						return nil, err
 					}
 
-					if err = m.System.EventStore.AppendToStream(ctx, "test", []store.EventDescriptor{{
-						ID:       store.NewEventID(),
-						TypeName: accountCreated{}.TypeName(),
-						Payload:  payload,
-						Metadata: nil,
-					}}); err != nil {
+					if err = m.System.EventStore.AppendToStream(ctx, "test", []store.EventDescriptor{descriptor}); err != nil {
 						return nil, err
 					}
 

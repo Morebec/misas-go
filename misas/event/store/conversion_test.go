@@ -135,8 +135,21 @@ func TestEventConverter_ConvertEventToDescriptor(t *testing.T) {
 			},
 			want: EventDescriptor{
 				ID:       "",
-				TypeName: "",
-				Payload:  nil,
+				TypeName: eventLoadedTypeName,
+				Payload: DescriptorPayload{
+					"AString": "string",
+					"AnInt":   1,
+					"AFloat":  50.25,
+					"ABool":   true,
+					"ARune":   'A',
+					"AMap": map[string]any{
+						"hello": "world",
+					},
+					"AList": []any{
+						"hello",
+						"world",
+					},
+				},
 				Metadata: nil,
 			},
 			wantErr: assert.NoError,
