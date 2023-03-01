@@ -205,6 +205,10 @@ func endpointHTTPHandler(e EndpointFunc) http.HandlerFunc {
 					w.Header().Add(h, v)
 				}
 			}
+
+			for _, c := range response.Cookies {
+				http.SetCookie(w, c)
+			}
 		}
 
 		render.JSON(w, r, response)

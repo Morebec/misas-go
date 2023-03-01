@@ -19,6 +19,7 @@ const Failure ResponseStatus = "failure"
 type EndpointResponse struct {
 	StatusCode int            `json:"-"`
 	Headers    http.Header    `json:"-"`
+	Cookies    []*http.Cookie `json:"-"`
 	Status     ResponseStatus `json:"status"`
 	Data       any            `json:"data"`
 	Error      *Error         `json:"error"`
@@ -31,6 +32,11 @@ func (r EndpointResponse) WithHeader(header, value string) EndpointResponse {
 
 func (r EndpointResponse) WithStatusCode(c int) EndpointResponse {
 	r.StatusCode = c
+	return r
+}
+
+func (r EndpointResponse) WithCookie(c *http.Cookie) EndpointResponse {
+	r.Cookies = append(r.Cookies, c)
 	return r
 }
 
