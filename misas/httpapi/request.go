@@ -58,16 +58,12 @@ const BadRequestErrorCode = "invalid_request"
 func NewEndpointRequest(r *http.Request, w http.ResponseWriter, opts ...RequestOption) (*EndpointRequest, error) {
 	er := &EndpointRequest{Request: r, responseWriter: w}
 
-	// Set default options.
-	opts = append([]RequestOption{
+	er.WithOptions(append([]RequestOption{
+		// Set default options.
 		MaxBodyBytes(1048576), // 1MB
 		DisallowUnknownFields,
 		DisallowEmptyBody,
-	}, opts...)
-
-	for _, opt := range opts {
-		opt(er)
-	}
+	}, opts...))
 
 	if err := er.validateRequest(); err != nil {
 		return nil, errors.WrapWithMessage(err, BadRequestErrorCode, "invalid r")
@@ -78,6 +74,13 @@ func NewEndpointRequest(r *http.Request, w http.ResponseWriter, opts ...RequestO
 	}
 
 	return er, nil
+}
+
+// WithOptions Applies a list of options to this request.
+func (r *EndpointRequest) WithOptions(opts []RequestOption) {
+	for _, opt := range opts {
+		opt(r)
+	}
 }
 
 // Unmarshal a JSON body to a provided value.
