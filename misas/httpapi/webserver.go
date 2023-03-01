@@ -41,14 +41,14 @@ func WithHeartbeat(pattern string) WebServerOption {
 // WithGetEndpoint adds a GET EndpointFunc to the WebServer
 func WithGetEndpoint(pattern string, e EndpointFunc) WebServerOption {
 	return func(w *WebServer) {
-		w.Router.Get(pattern, endpointHandler(e))
+		w.Router.Get(pattern, endpointHTTPHandler(e))
 	}
 }
 
 // WithPostEndpoint adds a POST EndpointFunc to the WebServer
 func WithPostEndpoint(pattern string, e EndpointFunc) WebServerOption {
 	return func(w *WebServer) {
-		w.Router.Post(pattern, endpointHandler(e))
+		w.Router.Post(pattern, endpointHTTPHandler(e))
 	}
 }
 
@@ -67,14 +67,14 @@ type EndpointGroupOption func(r chi.Router)
 // WithGetGroupEndpoint adds a GET EndpointFunc to an endpoint Group.
 func WithGetGroupEndpoint(pattern string, e EndpointFunc) EndpointGroupOption {
 	return func(r chi.Router) {
-		r.Get(pattern, endpointHandler(e))
+		r.Get(pattern, endpointHTTPHandler(e))
 	}
 }
 
 // WithPostGroupEndpoint adds a Post EndpointFunc to an endpoint Group.
 func WithPostGroupEndpoint(pattern string, e EndpointFunc) EndpointGroupOption {
 	return func(r chi.Router) {
-		r.Post(pattern, endpointHandler(e))
+		r.Post(pattern, endpointHTTPHandler(e))
 	}
 }
 
@@ -115,7 +115,7 @@ func NewWebServer(opts ...WebServerOption) *WebServer {
 	}
 
 	// Add Not Found handler
-	ws.Router.NotFound(endpointHandler(func(r *http.Request) EndpointResponse {
+	ws.Router.NotFound(endpointHTTPHandler(func(r *EndpointRequest) EndpointResponse {
 		return NewFailureResponse(errors.NotFoundCode, "404 page not found", nil)
 	}))
 
@@ -129,18 +129,24 @@ func (w *WebServer) ListenAndServe() error {
 }
 
 // EndpointFunc represents an endpoint to handle a request.
-type EndpointFunc func(r *http.Request) EndpointResponse
+type EndpointFunc func(r *EndpointRequest) EndpointResponse
 
-func endpointHandler(e EndpointFunc) http.HandlerFunc {
+func endpointHTTPHandler(e EndpointFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		response := e(r)
-
-		w.WriteHeader(response.StatusCode)
-		for h, hvs := range response.Headers {
-			for _, v := range hvs {
-				w.Header().Add(h, v)
+		var response EndpointResponse
+		er, err := NewEndpointRequest(r, w)
+		if err != nil {
+			response = NewErrorResponse(err)
+		} else {
+			response = e(er)
+			w.WriteHeader(response.StatusCode)
+			for h, hvs := range response.Headers {
+				for _, v := range hvs {
+					w.Header().Add(h, v)
+				}
 			}
 		}
+
 		render.JSON(w, r, response)
 	}
 }
