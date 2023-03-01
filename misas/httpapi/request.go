@@ -50,6 +50,10 @@ const BadRequestErrorCode = "invalid_request"
 
 // NewEndpointRequest creates a new endpoint response instance for the provided request and validates that it is a correct
 // an JSON API request.
+// If no options are passed defaults to
+// - A 1MB maximum body size
+// - Disallowed Unknown fields
+// - Disallowed empty body.
 // Errors returned by this method can be directly passed to the NewErrorResponse without wrapping.
 func NewEndpointRequest(r *http.Request, w http.ResponseWriter, opts ...RequestOption) (*EndpointRequest, error) {
 	er := &EndpointRequest{Request: r, responseWriter: w}
