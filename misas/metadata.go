@@ -15,7 +15,7 @@
 package misas
 
 // Metadata Represents arbitrary metadata.
-// All functions of metadata return a copy of the metadata.
+// All method of metadata return a copy of the metadata and allow being called on a nil instance of Metadata.
 type Metadata map[string]any
 
 // Get a value for key or a given default value if not found.
