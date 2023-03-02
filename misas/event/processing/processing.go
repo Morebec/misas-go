@@ -280,9 +280,9 @@ func (p *Processor) fetchCheckpoint(ctx context.Context) (Checkpoint, error) {
 }
 
 // SendToEventBusProcessingHandler  Returns a Processing Func that sends the UpcastableEventPayload to the InMemoryBus.
-func SendToEventBusProcessingHandler(loader store.EventConverter, bus *event.InMemoryBus) Handler {
+func SendToEventBusProcessingHandler(eventConverter *store.EventConverter, bus event.Bus) Handler {
 	return func(ctx context.Context, descriptor store.RecordedEventDescriptor) error {
-		loaded, err := loader.ConvertDescriptorToEvent(descriptor)
+		loaded, err := eventConverter.ConvertDescriptorToEvent(descriptor)
 		if err != nil {
 			return err
 		}
