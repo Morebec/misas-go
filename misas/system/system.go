@@ -25,6 +25,8 @@ import (
 	"github.com/morebec/misas-go/misas/query"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"go.opentelemetry.io/otel/sdk/trace"
+	"log"
+	"sync"
 )
 
 type Environment string
@@ -66,6 +68,7 @@ type System struct {
 	Logger       *otelzap.Logger
 	Tracer       *instrumentation.SystemTracer
 	SpanExporter trace.SpanExporter
+	Services     Services
 }
 
 type Option func(*System)
@@ -103,6 +106,7 @@ func New(opts ...Option) *System {
 		PredictionConverter: prediction.NewConverter(),
 		Logger:              nil,
 		Tracer:              nil,
+		Services:            Services{},
 	}
 
 	for _, opt := range opts {
@@ -113,17 +117,49 @@ func New(opts ...Option) *System {
 }
 
 // Run Allows running the System with a managed context.
-func (s *System) Run(entry EntryPoint) error {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+func (s *System) Run(ctx context.Context, entry EntryPoint) error {
+	var err error
+	go func() {
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		err = entry.Start(ctx, s)
+	}()
 
-	defer func(entry EntryPoint, ctx context.Context, s *System) {
-		_ = entry.Stop(ctx, s)
-	}(entry, ctx, s)
-
-	if err := entry.Start(ctx, s); err != nil {
+	_ = <-ctx.Done()
+	if err := entry.Stop(ctx, s); err != nil {
 		return err
 	}
 
-	return nil
+	return err
+}
+
+func (s *System) RunAll(ctx context.Context, entryPoints ...entryPoint) error {
+
+	var reterr error
+	wg := sync.WaitGroup{}
+
+	for _, e := range entryPoints {
+		wg.Add(1)
+		e := e
+		go func() {
+			defer wg.Done()
+			if err := s.Run(ctx, e); err != nil {
+				log.Print(err.Error())
+				reterr = err
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	return reterr
+}
+
+// Service returns a service by its name or nil if it was not found.
+func (s *System) Service(name string) Service {
+	if serv, ok := s.Services[name]; !ok {
+		return nil
+	} else {
+		return serv
+	}
 }

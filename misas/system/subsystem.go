@@ -52,6 +52,22 @@ func (sub *Subsystem) RegisterEventHandler(h event.Handler) EventHandlerConfigur
 	return EventHandlerConfigurator{handler: h, system: sub.System}
 }
 
+// RegisterService Registers a service with the system.
+func (sub *Subsystem) RegisterService(name string, s Service) *Subsystem {
+	sub.System.Services[name] = s
+	return sub
+}
+
+// Service Returns a service by its name or nil if it was not found.
+func (sub *Subsystem) Service(name string) Service {
+	serv, ok := sub.System.Services[name]
+	if !ok {
+		return nil
+	} else {
+		return serv
+	}
+}
+
 type EventHandlerConfigurator struct {
 	system  *System
 	handler event.Handler
@@ -59,13 +75,14 @@ type EventHandlerConfigurator struct {
 
 // Handles allows registering the event and the handler with the event.Bus, as well as
 // registering the event with the store.EventConverter.
+// Calling this method multiple times allow registering a handler to listen to multiple types of events.
 func (c EventHandlerConfigurator) Handles(e event.Payload) EventHandlerConfigurator {
 	c.system.EventConverter.RegisterEventPayload(e)
 	c.system.EventBus.RegisterHandler(e.TypeName(), c.handler)
 	return c
 }
 
-// RegisterEvent allows registering an event with the store.EventConverter.
+// RegisterEvent allows registering an event with the store.EventConverter explicitly.
 func (sub *Subsystem) RegisterEvent(e event.Payload) *Subsystem {
 	sub.System.EventConverter.RegisterEventPayload(e)
 	return sub

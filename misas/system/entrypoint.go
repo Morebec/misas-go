@@ -28,7 +28,7 @@ import (
 	openTrace "go.opentelemetry.io/otel/trace"
 )
 
-// EntryPoint corresponds to a system responsible for starting a specific point of the application.
+// EntryPoint are structs that are responsible for starting a specific point of the system.
 // E.g. Web Server could be an entry point, while a projector could be a different entry point.
 type EntryPoint interface {
 	// Name Returns the name of the entry point. This can be used while logging to know which entry point encountered an error.
