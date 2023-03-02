@@ -112,6 +112,7 @@ func ExampleSystem_Run() {
 	)
 
 	err := s.Run(
+		context.Background(),
 		mainEntryPoint,
 	)
 	if err != nil {
