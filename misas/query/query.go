@@ -28,3 +28,11 @@ type Query struct {
 	Payload  Payload
 	Metadata misas.Metadata
 }
+
+func New(p Payload) Query {
+	return NewWithMetadata(p, nil)
+}
+
+func NewWithMetadata(p Payload, m misas.Metadata) Query {
+	return Query{Payload: p, Metadata: m}
+}
