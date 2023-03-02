@@ -17,9 +17,9 @@ func (c ImplementCommand) TypeName() command.PayloadTypeName {
 func RegisterUserCommandHandler() command.HandlerFunc {
 	return func(ctx context.Context, cmd command.Command) (any, error) {
 	    c, ok := cmd.Payload.(RegisterUserCommand)
-		if !ok {
-            return errors.New("invalid_command")
-        }
+	    if !ok {
+                return errors.New("invalid_command")
+            }
         // Implement logic ...
     }
 }
@@ -31,7 +31,7 @@ cb := command.NewInMemoryBus()
 cb.RegisterHandler(RegisterUserCommand{}.TypeName(), RegisterUserCommandHandler())
 ```
 
-## Send command to command bus
+## Send command to the command bus
 ```go
 cb := command.NewInMemoryBus()
 cb.Send(context.Background(), command.New(RegisterUserCommand{
