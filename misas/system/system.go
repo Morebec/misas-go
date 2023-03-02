@@ -25,7 +25,6 @@ import (
 	"github.com/morebec/misas-go/misas/query"
 	"github.com/uptrace/opentelemetry-go-extra/otelzap"
 	"go.opentelemetry.io/otel/sdk/trace"
-	"log"
 	"sync"
 )
 
@@ -116,43 +115,44 @@ func New(opts ...Option) *System {
 	return system
 }
 
-// Run Allows running the System with a managed context.
+// Run Allows running a EntryPoint with the system, passing down a context.
+// if the entry point returns an error it will be returned by this function.
+// Entry points should handle errors as they see fit.
 func (s *System) Run(ctx context.Context, entry EntryPoint) error {
-	var err error
-	go func() {
-		ctx, cancel := context.WithCancel(ctx)
-		defer cancel()
-		err = entry.Start(ctx, s)
-	}()
-
-	_ = <-ctx.Done()
-	if err := entry.Stop(ctx, s); err != nil {
-		return err
-	}
-
-	return err
+	return entry.Run(ctx, s)
 }
 
-func (s *System) RunAll(ctx context.Context, entryPoints ...EntryPoint) error {
+// RunResult is a data structure representing the execution of an endpoint with the System.RunAll method.
+type RunResult struct {
+	EndpointName string
+	Err          error
+}
 
-	var reterr error
+// RunAll allows running multiple EntryPoint concurrently, each inside their own goroutines.
+// This method returns a channel that allows listening to errors returned by the endpoints.
+// Once all endpoints have returned will return
+func (s *System) RunAll(ctx context.Context, entryPoints ...EntryPoint) chan RunResult {
+
 	wg := sync.WaitGroup{}
+	errCh := make(chan RunResult, len(entryPoints))
 
-	for _, e := range entryPoints {
+	for _, entryPoint := range entryPoints {
 		wg.Add(1)
-		e := e
+		e := entryPoint
 		go func() {
 			defer wg.Done()
 			if err := s.Run(ctx, e); err != nil {
-				log.Print(err.Error())
-				reterr = err
+				errCh <- RunResult{EndpointName: e.Name(), Err: err}
 			}
 		}()
 	}
 
-	wg.Wait()
+	go func() {
+		wg.Wait()
+		close(errCh)
+	}()
 
-	return reterr
+	return errCh
 }
 
 // Service returns a service by its name or nil if it was not found.

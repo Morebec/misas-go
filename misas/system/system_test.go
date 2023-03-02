@@ -101,11 +101,7 @@ func ExampleSystem_Run() {
 	mainEntryPoint := NewEntryPoint(
 		"hello",
 		func(ctx context.Context, s *System) error {
-			// Start Web System, UpcastableEventPayload Processor, Background Process etc.
-			return nil
-		},
-		func(ctx context.Context, s *System) error {
-			// Stop Web System, UpcastableEventPayload Processor, Background Process etc.
+			// Run Web System, UpcastableEventPayload Processor, Background Process etc.
 			return nil
 		},
 		WithEntryPointInstrumentation(),

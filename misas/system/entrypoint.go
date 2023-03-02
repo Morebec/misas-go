@@ -17,7 +17,6 @@ package system
 import (
 	"context"
 	"fmt"
-	"github.com/morebec/misas-go/misas/event/processing"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
@@ -34,31 +33,25 @@ type EntryPoint interface {
 	// Name Returns the name of the entry point. This can be used while logging to know which entry point encountered an error.
 	Name() string
 
-	// Start the entry point's execution.
-	Start(ctx context.Context, s *System) error
-
-	// Stop the entry point's execution.
-	Stop(ctx context.Context, s *System) error
+	// Run the entry point.
+	Run(ctx context.Context, s *System) error
 }
 
 // default private implementation of an entry point.
 type entryPoint struct {
 	name  string
 	start func(ctx context.Context, s *System) error
-	stop  func(ctx context.Context, s *System) error
 }
 
 // NewEntryPoint allows creating a new entry point easily without the need to define a type.
 func NewEntryPoint(
 	name string,
 	start func(ctx context.Context, s *System) error,
-	stop func(ctx context.Context, s *System) error,
 	opts ...EntryPointOption,
-) *entryPoint {
+) EntryPoint {
 	e := entryPoint{
 		name:  name,
 		start: start,
-		stop:  stop,
 	}
 
 	for _, opt := range opts {
@@ -72,15 +65,12 @@ func (e entryPoint) Name() string {
 	return e.name
 }
 
-func (e entryPoint) Start(ctx context.Context, s *System) error {
+func (e entryPoint) Run(ctx context.Context, s *System) error {
 	return e.start(ctx, s)
 }
 
-func (e entryPoint) Stop(ctx context.Context, s *System) error {
-	return e.stop(ctx, s)
-}
-
 // NewTracingEntryPointDecorator sets up a decorator around an entry point to allow tracing.
+// The tracing starts a span before executing the EntryPoint.Start method and ends it when the method ends.
 func NewTracingEntryPointDecorator(entryPoint EntryPoint) EntryPoint {
 
 	type ShutdownTracingFn func(ctx context.Context) error
@@ -122,23 +112,9 @@ func NewTracingEntryPointDecorator(entryPoint EntryPoint) EntryPoint {
 		}
 
 		entryPointCtx, entryPointSpan = s.Tracer.Start(ctx, fmt.Sprintf("%s", entryPoint.Name()))
-
-		ctx, span := s.Tracer.Start(entryPointCtx, fmt.Sprintf("%s.Start", entryPoint.Name()))
-		defer span.End()
-
-		if err := entryPoint.Start(ctx, s); err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
-			return err
-		}
-
-		return nil
-	}
-
-	stop := func(ctx context.Context, s *System) error {
-		ctx, span := s.Tracer.Start(entryPointCtx, fmt.Sprintf("%s.Stop", entryPoint.Name()))
+		entryPointCtx = context.WithValue(entryPointCtx, "entryPointSpan", entryPointSpan)
 		defer func(ctx context.Context) {
-			span.End()
+			entryPointSpan.End()
 			entryPointSpan.End()
 			if err := shutdownTracing(ctx); err != nil {
 				entryPointSpan.RecordError(err)
@@ -146,26 +122,19 @@ func NewTracingEntryPointDecorator(entryPoint EntryPoint) EntryPoint {
 				entryPointSpan.End()
 				s.Logger.Error(fmt.Sprintf("failed shutting tracer provider down: %s", err.Error()))
 			}
-		}(ctx)
+		}(entryPointCtx)
 
-		if err := entryPoint.Stop(ctx, s); err != nil {
-			span.RecordError(err)
-			span.SetStatus(codes.Error, err.Error())
+		if err := entryPoint.Run(entryPointCtx, s); err != nil {
+			entryPointSpan.RecordError(err)
+			entryPointSpan.SetStatus(codes.Error, err.Error())
+
 			return err
 		}
 
 		return nil
 	}
 
-	return NewEntryPoint(entryPoint.Name(), start, stop)
+	return NewEntryPoint(entryPoint.Name(), start)
 }
 
 type EntryPointOption func(e EntryPoint)
-
-func NewEventProcessorEntryPoint(name string, p processing.Processor) *entryPoint {
-	return NewEntryPoint(name, func(ctx context.Context, s *System) error {
-		return p.Run(ctx)
-	}, func(ctx context.Context, s *System) error {
-		return nil
-	})
-}
