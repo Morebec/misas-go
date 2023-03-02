@@ -133,7 +133,7 @@ func (s *System) Run(ctx context.Context, entry EntryPoint) error {
 	return err
 }
 
-func (s *System) RunAll(ctx context.Context, entryPoints ...entryPoint) error {
+func (s *System) RunAll(ctx context.Context, entryPoints ...EntryPoint) error {
 
 	var reterr error
 	wg := sync.WaitGroup{}
