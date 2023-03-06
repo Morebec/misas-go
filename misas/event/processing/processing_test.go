@@ -328,7 +328,7 @@ func TestProcessor_Run(t *testing.T) {
 				processingFunc:  tt.fields.processingFunc,
 			}
 			if err := p.Run(tt.args.ctx); (err != nil) != tt.wantErr {
-				t.Errorf("Run() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("RunEntryPoint() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

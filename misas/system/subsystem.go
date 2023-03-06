@@ -58,6 +58,11 @@ func (sub *Subsystem) RegisterService(name string, s Service) *Subsystem {
 	return sub
 }
 
+func (sub *Subsystem) RegisterEntryPoint(ep entryPoint) *Subsystem {
+	sub.System.EntryPoints = append(sub.System.EntryPoints, ep)
+	return sub
+}
+
 // Service Returns a service by its name or nil if it was not found.
 func (sub *Subsystem) Service(name string) Service {
 	serv, ok := sub.System.Services[name]

@@ -68,6 +68,7 @@ type System struct {
 	Tracer       *instrumentation.SystemTracer
 	SpanExporter trace.SpanExporter
 	Services     Services
+	EntryPoints  []EntryPoint
 }
 
 type Option func(*System)
@@ -106,6 +107,7 @@ func New(opts ...Option) *System {
 		Logger:              nil,
 		Tracer:              nil,
 		Services:            Services{},
+		EntryPoints:         nil,
 	}
 
 	for _, opt := range opts {
@@ -115,23 +117,22 @@ func New(opts ...Option) *System {
 	return system
 }
 
-// Run Allows running a EntryPoint with the system, passing down a context.
+// RunEntryPoint Allows running a EntryPoint with the system, passing down a context.
 // if the entry point returns an error it will be returned by this function.
 // Entry points should handle errors as they see fit.
-func (s *System) Run(ctx context.Context, entry EntryPoint) error {
+func (s *System) RunEntryPoint(ctx context.Context, entry EntryPoint) error {
 	return entry.Run(ctx, s)
 }
 
-// ConcurrentRunResult is a data structure representing the execution of an endpoint with the System.RunAll method.
+// ConcurrentRunResult is a data structure representing the concurrent execution of an endpoint with the System.RunConcurrently method.
 type ConcurrentRunResult struct {
 	EndpointName string
 	Err          error
 }
 
-// RunAll allows running multiple EntryPoint concurrently, each inside their own goroutines.
-// This method returns a channel that allows listening to errors returned by the endpoints.
-// Once all endpoints have returned will return
-func (s *System) RunAll(ctx context.Context, entryPoints ...EntryPoint) chan ConcurrentRunResult {
+// RunConcurrently allows running multiple EntryPoint concurrently each inside their own goroutines.
+// This method returns a channel that allows listening being notified when an endpoint terminates.
+func (s *System) RunConcurrently(ctx context.Context, entryPoints ...EntryPoint) chan ConcurrentRunResult {
 
 	wg := sync.WaitGroup{}
 	runChan := make(chan ConcurrentRunResult, len(entryPoints))
@@ -142,7 +143,7 @@ func (s *System) RunAll(ctx context.Context, entryPoints ...EntryPoint) chan Con
 		go func() {
 			defer wg.Done()
 			runResult := ConcurrentRunResult{EndpointName: e.Name()}
-			if err := s.Run(ctx, e); err != nil {
+			if err := s.RunEntryPoint(ctx, e); err != nil {
 				runResult.Err = err
 			}
 			runChan <- runResult
@@ -157,6 +158,11 @@ func (s *System) RunAll(ctx context.Context, entryPoints ...EntryPoint) chan Con
 	return runChan
 }
 
+// Run allows running all Entry points of the system.
+func (s *System) Run(ctx context.Context) chan ConcurrentRunResult {
+	return s.RunConcurrently(ctx, s.EntryPoints...)
+}
+
 // Service returns a service by its name or nil if it was not found.
 func (s *System) Service(name string) Service {
 	if serv, ok := s.Services[name]; !ok {
@@ -164,4 +170,15 @@ func (s *System) Service(name string) Service {
 	} else {
 		return serv
 	}
+}
+
+// EntryPoint returns an entry point by its name or nil if not found.
+func (s *System) EntryPoint(name string) EntryPoint {
+	for _, e := range s.EntryPoints {
+		if e.Name() == name {
+			return e
+		}
+	}
+
+	return nil
 }

@@ -93,7 +93,7 @@ mainEntryPoint := NewEntryPoint(
 ## Running an Entry Point
 ```go
 // Allows running the system with the given entry point.
-if err := s.Run(mainEntryPoint); err != nil {
+if err := s.RunEntryPoint(mainEntryPoint); err != nil {
     panic(err)
 }
 ```
@@ -107,7 +107,7 @@ The `RunAll` allows running these entry points concurrently, and returns a buffe
 that allows to be notified when an entrypoint terminates or fails:
 
 ```go
-res := s.RunAll(
+res := s.RunConcurrently(
 		ctx,
 		EventProcessorEntryPoint(s.EventStore, s.EventConverter, s.EventBus),
 		FrontendApiServerEntryPoint(frontendApiServer),
@@ -122,3 +122,8 @@ res := s.RunAll(
 		}
 	}
 ```
+
+
+## Running All Entry Points of the System Concurrently
+Although the `RunConcurrently` allows to specify exactly which endpoints to run, it can be simpler
+to run all the endpoints that are registered with the system, using the `Run` method.

@@ -122,7 +122,7 @@ of the core units within the system:
 	),
 	
 	// Allows running the system with the given entry point.
-	if err := s.Run(mainEntryPoint); err != nil {
+	if err := s.RunEntryPoint(mainEntryPoint); err != nil {
 		panic(err)
 	}
 ```

@@ -159,7 +159,7 @@ func (s *Server) Start() error {
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt)
 
-	// Run server
+	// RunEntryPoint server
 	go func() {
 		if err := s.ListenAndServe(); err != nil {
 			errorChan <- err
