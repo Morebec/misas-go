@@ -60,9 +60,21 @@ func TestCheckpointStore_Remove(t *testing.T) {
 }
 
 func TestCheckpointStore_Store(t *testing.T) {
+	store := buildCheckpointStore()
 
-}
+	checkpoint := processing.Checkpoint{
+		ID:       "A",
+		Position: 0,
+		StreamID: "STREAM",
+	}
+	err := store.Save(context.Background(), checkpoint)
+	assert.NoError(t, err)
 
-func TestCheckpointStore_setupSchemas(t *testing.T) {
-
+	checkpoint = processing.Checkpoint{
+		ID:       "B",
+		Position: 1,
+		StreamID: "STREAM",
+	}
+	err = store.Save(context.Background(), checkpoint)
+	assert.NoError(t, err)
 }

@@ -51,12 +51,12 @@ CREATE TABLE IF NOT EXISTS checkpoints
 func (cs *CheckpointStore) Open(ctx context.Context) error {
 	db, err := sql.Open("postgres", cs.connectionString)
 	if err != nil {
-		return errors.Wrap(err, "failed opening connection to event store")
+		return errors.Wrap(err, "failed opening connection to checkpoint store")
 	}
 	cs.conn = db
 
 	if err = cs.conn.PingContext(ctx); err != nil {
-		return errors.Wrap(err, "failed opening connection to event store")
+		return errors.Wrap(err, "failed opening connection to checkpoint store")
 	}
 
 	return cs.setupSchemas(ctx)
@@ -64,7 +64,7 @@ func (cs *CheckpointStore) Open(ctx context.Context) error {
 
 func (cs *CheckpointStore) Close() error {
 	if err := cs.conn.Close(); err != nil {
-		return errors.Wrap(err, "failed closing connection to event store")
+		return errors.Wrap(err, "failed closing connection to checkpoint store")
 	}
 	return nil
 }
@@ -73,7 +73,9 @@ func (cs *CheckpointStore) Save(ctx context.Context, checkpoint processing.Check
 
 	insertSql := `
 INSERT INTO checkpoints (id, stream_id, position) 
-VALUES($1, $2, $3);
+VALUES($1, $2, $3)
+ON CONFLICT (id) DO UPDATE SET position = $2
+;
 `
 
 	_, err := cs.conn.ExecContext(ctx, insertSql, checkpoint.ID, checkpoint.StreamID, checkpoint.Position)
