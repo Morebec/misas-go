@@ -74,7 +74,7 @@ func (cs *CheckpointStore) Save(ctx context.Context, checkpoint processing.Check
 	insertSql := `
 INSERT INTO checkpoints (id, stream_id, position) 
 VALUES($1, $2, $3)
-ON CONFLICT (id) DO UPDATE SET position = $2
+ON CONFLICT (id) DO UPDATE SET position = excluded.position
 ;
 `
 
