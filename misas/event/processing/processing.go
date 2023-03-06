@@ -236,6 +236,8 @@ func (p *Processor) processEvents(ctx context.Context) (err error) {
 	}
 
 	for _, descriptor := range stream.Descriptors {
+		// Update position
+		checkpoint.Position = store.Position(descriptor.SequenceNumber)
 		if p.options.CheckpointCommitStrategy == CommitBeforeProcessing {
 			if err := p.checkpointStore.Save(ctx, checkpoint); err != nil {
 				return errors.Wrap(err, "failed updating event processor checkpoint")
