@@ -34,7 +34,7 @@ by returning "REDACTED" when converted to a string.
 At the core of the library there is the concept of `System` which represents an information system.
 The `System` struct is used as a centralized point to define systems.
 Although entirely optional, the use of the `System` allows to expressively define the dependencies
-of the core units withing the system: 
+of the core units within the system: 
 
 
 ```go

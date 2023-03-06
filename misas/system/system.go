@@ -122,8 +122,8 @@ func (s *System) Run(ctx context.Context, entry EntryPoint) error {
 	return entry.Run(ctx, s)
 }
 
-// RunResult is a data structure representing the execution of an endpoint with the System.RunAll method.
-type RunResult struct {
+// ConcurrentRunResult is a data structure representing the execution of an endpoint with the System.RunAll method.
+type ConcurrentRunResult struct {
 	EndpointName string
 	Err          error
 }
@@ -131,28 +131,30 @@ type RunResult struct {
 // RunAll allows running multiple EntryPoint concurrently, each inside their own goroutines.
 // This method returns a channel that allows listening to errors returned by the endpoints.
 // Once all endpoints have returned will return
-func (s *System) RunAll(ctx context.Context, entryPoints ...EntryPoint) chan RunResult {
+func (s *System) RunAll(ctx context.Context, entryPoints ...EntryPoint) chan ConcurrentRunResult {
 
 	wg := sync.WaitGroup{}
-	errCh := make(chan RunResult, len(entryPoints))
+	runChan := make(chan ConcurrentRunResult, len(entryPoints))
 
 	for _, entryPoint := range entryPoints {
 		wg.Add(1)
 		e := entryPoint
 		go func() {
 			defer wg.Done()
+			runResult := ConcurrentRunResult{EndpointName: e.Name()}
 			if err := s.Run(ctx, e); err != nil {
-				errCh <- RunResult{EndpointName: e.Name(), Err: err}
+				runResult.Err = err
 			}
+			runChan <- runResult
 		}()
 	}
 
 	go func() {
 		wg.Wait()
-		close(errCh)
+		close(runChan)
 	}()
 
-	return errCh
+	return runChan
 }
 
 // Service returns a service by its name or nil if it was not found.
