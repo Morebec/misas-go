@@ -491,7 +491,9 @@ func (es *EventStore) SubscribeToStream(ctx context.Context, streamID store.Stre
 	go func() {
 		for {
 			if err := listener.Listen("events"); err != nil {
-				subscription.EmitError(err)
+				if err != pq.ErrChannelAlreadyOpen {
+					subscription.EmitError(err)
+				}
 				return
 			}
 
