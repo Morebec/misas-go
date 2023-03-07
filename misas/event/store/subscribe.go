@@ -90,6 +90,7 @@ func (s Subscription) StreamID() StreamID {
 	return s.streamID
 }
 
+// Close this subscription.
 func (s Subscription) Close() error {
 	s.close <- true
 	return nil

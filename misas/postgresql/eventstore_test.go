@@ -294,8 +294,6 @@ func TestEventStore_SubscribeToStream(t *testing.T) {
 	subscription, err := st.SubscribeToStream(context.Background(), streamID)
 	assert.NoError(t, err)
 
-	time.Sleep(1 * time.Second)
-
 	// New event
 	err = st.AppendToStream(context.Background(), streamID, []store.EventDescriptor{
 		{
@@ -306,6 +304,8 @@ func TestEventStore_SubscribeToStream(t *testing.T) {
 		},
 	})
 	assert.NoError(t, err)
+
+	time.Sleep(1 * time.Second)
 
 	e := <-subscription.EventChannel()
 	assert.Equal(t, store.EventID("event#4"), e.ID)

@@ -231,7 +231,11 @@ func TestInMemoryEventStore_StreamExists(t *testing.T) {
 func TestInMemoryEventStore_SubscribeToStreams(t *testing.T) {
 	store := NewInMemoryEventStore(clock.UTCClock{})
 	streamID := StreamID("unit_test")
-	err := store.AppendToStream(context.Background(), streamID, []EventDescriptor{
+
+	subscription, err := store.SubscribeToStream(context.Background(), streamID)
+	assert.NoError(t, err)
+
+	err = store.AppendToStream(context.Background(), streamID, []EventDescriptor{
 		{
 			ID:       "event#1",
 			TypeName: InMemoryUnitTestPassedEventTypeName,
@@ -253,11 +257,11 @@ func TestInMemoryEventStore_SubscribeToStreams(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	subscription, err := store.SubscribeToStream(context.Background(), streamID)
-	assert.NoError(t, err)
-
 	// Catch up
 	e := <-subscription.EventChannel()
+	assert.Equal(t, EventID("event#1"), e.ID)
+
+	e = <-subscription.EventChannel()
 	assert.Equal(t, EventID("event#2"), e.ID)
 
 	e = <-subscription.EventChannel()

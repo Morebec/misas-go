@@ -26,6 +26,7 @@ import (
 	"github.com/morebec/misas-go/misas/event/store"
 	"github.com/pkg/errors"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -38,6 +39,11 @@ type EventStore struct {
 	database         *sql.DB
 	clock            clock.Clock
 	upcasterChain    store.UpcasterChain
+
+	// Postgres channel listener, to be notified of new incoming events.
+	notifyListener    *pq.Listener
+	subscriptions     []*store.Subscription
+	subscriptionsLock sync.Mutex
 }
 
 func NewEventStore(
@@ -128,17 +134,32 @@ func (es *EventStore) Open(ctx context.Context) error {
 	}
 	es.database = db
 
-	if err = es.database.PingContext(ctx); err != nil {
+	if err := es.database.PingContext(ctx); err != nil {
 		return errors.Wrap(err, "failed opening connection to event store")
 	}
 
-	return es.setupSchemas(ctx)
+	if err := es.setupSchemas(ctx); err != nil {
+		return errors.Wrap(err, "failed opening connection to event store")
+	}
+
+	if err := es.setupNotifyListener(ctx); err != nil {
+
+	}
+	return nil
 }
 
 func (es *EventStore) Close() error {
 	if err := es.database.Close(); err != nil {
 		return errors.Wrap(err, "failed closing connection to event store")
 	}
+
+	if err := es.notifyListener.Unlisten("events"); err != nil {
+		return errors.Wrap(err, "failed closing notify listener connection to event store")
+	}
+	if err := es.notifyListener.Close(); err != nil {
+		return errors.Wrap(err, "failed closing notify listener connection to event store")
+	}
+
 	return nil
 }
 
@@ -475,35 +496,36 @@ func (es *EventStore) DeleteStream(ctx context.Context, id store.StreamID) error
 	return nil
 }
 
-func (es *EventStore) SubscribeToStream(ctx context.Context, streamID store.StreamID, opts ...store.SubscribeToStreamOption) (store.Subscription, error) {
-	options := store.BuildSubscribeToStreamOptions(opts)
-	errorChannel := make(chan error)
-	eventChannel := make(chan store.RecordedEventDescriptor)
-	closeChannel := make(chan bool, 1)
-	subscription := store.NewSubscription(eventChannel, errorChannel, closeChannel, streamID, options)
-
-	listener := pq.NewListener(es.connectionString, 5*time.Second, time.Minute, func(event pq.ListenerEventType, err error) {
+// setupNotifyListener sets up a listen/notify connection with the database to listen to new incoming events in realtime.
+func (es *EventStore) setupNotifyListener(ctx context.Context) error {
+	es.notifyListener = pq.NewListener(es.connectionString, 5*time.Second, time.Minute, func(event pq.ListenerEventType, err error) {
 		if err != nil {
-			errorChannel <- err
+			for _, s := range es.subscriptions {
+				s.EmitError(err)
+			}
 		}
 	})
 
+	if err := es.notifyListener.Listen("events"); err != nil {
+		return err
+	}
+
+	// Listen for events
 	go func() {
 		for {
-			if err := listener.Listen("events"); err != nil {
-				if err != pq.ErrChannelAlreadyOpen {
-					subscription.EmitError(err)
-				}
-				return
-			}
-
 			select {
-			case n := <-listener.Notify:
-				var descriptorData map[string]any
+			case n := <-es.notifyListener.Notify:
+				if n == nil {
+					break
+				}
+
+				descriptorData := map[string]any{}
 				err := json.Unmarshal([]byte(n.Extra), &descriptorData)
 				if err != nil {
-					subscription.EmitError(err)
-					return
+					for _, s := range es.subscriptions {
+						s.EmitError(err)
+					}
+					break
 				}
 
 				// Read the event from the store and publish it on the channel.
@@ -515,19 +537,53 @@ func (es *EventStore) SubscribeToStream(ctx context.Context, streamID store.Stre
 					store.WithMaxCount(1),
 				)
 				if err != nil {
-					return
+					for _, s := range es.subscriptions {
+						if stream.StreamID == s.StreamID() {
+							s.EmitError(err)
+						}
+					}
 				}
 
-				subscription.EmitEvent(stream.First())
-
-			case _ = <-closeChannel:
-				err := listener.Unlisten("events")
-				if err != nil {
-					subscription.EmitError(err)
-					return
+				e := stream.First()
+				for _, s := range es.subscriptions {
+					if stream.StreamID == s.StreamID() {
+						s.EmitEvent(e)
+					}
 				}
 			}
 		}
+	}()
+
+	return nil
+}
+
+func (es *EventStore) SubscribeToStream(ctx context.Context, streamID store.StreamID, opts ...store.SubscribeToStreamOption) (store.Subscription, error) {
+
+	closeChan := make(chan bool, 1)
+	subscription := store.NewSubscription(
+		make(chan store.RecordedEventDescriptor),
+		make(chan error),
+		closeChan,
+		streamID,
+		store.BuildSubscribeToStreamOptions(opts),
+	)
+
+	es.subscriptionsLock.Lock()
+	es.subscriptions = append(es.subscriptions, subscription)
+	defer es.subscriptionsLock.Unlock()
+
+	go func() {
+		<-closeChan
+		es.subscriptionsLock.Lock()
+		defer es.subscriptionsLock.Unlock()
+		// Remove sub when it is closed.
+		var subs []*store.Subscription
+		for _, s := range es.subscriptions {
+			if s != subscription {
+				subs = append(subs, s)
+			}
+		}
+		es.subscriptions = subs
 	}()
 
 	return *subscription, nil
