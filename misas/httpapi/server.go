@@ -194,23 +194,22 @@ type EndpointFunc func(r *EndpointRequest) EndpointResponse
 func endpointHTTPHandler(e EndpointFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var response EndpointResponse
-		er, err := NewEndpointRequest(r, w)
+		req, err := NewEndpointRequest(r, w)
 		if err != nil {
 			response = NewErrorResponse(err)
 		} else {
-			response = e(er)
-			w.WriteHeader(response.StatusCode)
+			response = e(req)
+			for _, c := range response.Cookies {
+				http.SetCookie(w, c)
+			}
 			for h, hvs := range response.Headers {
 				for _, v := range hvs {
 					w.Header().Add(h, v)
 				}
 			}
-
-			for _, c := range response.Cookies {
-				http.SetCookie(w, c)
-			}
 		}
 
 		render.JSON(w, r, response)
+		w.WriteHeader(response.StatusCode)
 	}
 }
