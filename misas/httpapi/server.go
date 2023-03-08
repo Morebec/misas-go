@@ -209,7 +209,7 @@ func endpointHTTPHandler(e EndpointFunc) http.HandlerFunc {
 			}
 		}
 
-		render.JSON(w, r, response)
 		w.WriteHeader(response.StatusCode)
+		render.JSON(w, r, response)
 	}
 }
