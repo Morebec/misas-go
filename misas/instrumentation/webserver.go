@@ -3,6 +3,7 @@ package instrumentation
 import (
 	"github.com/morebec/misas-go/misas/httpapi"
 	"github.com/riandyrn/otelchi"
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -18,9 +19,7 @@ func EnableOpenTelemetryOnWebServer(tracer *SystemTracer, serverName string) htt
 			serverName,
 			otelchi.WithChiRoutes(w.Router()),
 			otelchi.WithRequestMethodInSpanName(true),
-			otelchi.WithTracerProvider(tracerProviderFunc(func() trace.Tracer {
-				return tracer
-			})),
+			otelchi.WithTracerProvider(otel.GetTracerProvider()),
 		))
 	}
 }
